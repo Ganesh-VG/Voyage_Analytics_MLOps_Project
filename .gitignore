@@ -1,0 +1,19 @@
+# Virtual Environment
+venv/
+
+# MLflow
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+
+# Saved Models
+*.pkl
+
+# OS Files
+.DS_Store
+Thumbs.db
