@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import requests
 
+flight_df = pd.read_csv(
+    "../data/processed/flight_user.csv"
+)
+
 st.set_page_config(
     page_title="Voyage Analytics",
     page_icon="✈️",
@@ -139,48 +143,57 @@ elif menu == "Gender Classification":
         "Gender Classification"
     )
 
-    age = st.number_input(
+    age = st.slider(
         "Age",
-        min_value=18,
-        max_value=100
+        min_value=int(
+            flight_df["age"].min()
+        ),
+        max_value=int(
+            flight_df["age"].max()
+        ),
+        value=30
     )
 
-    company = st.number_input(
-        "Company Code",
-        min_value=0
+    company = st.selectbox(
+        "Company",
+        sorted(
+            flight_df["company"].unique()
+        )
     )
 
-    trip_count = st.number_input(
-        "Trip Count",
-        min_value=0
+    flight_type = st.selectbox(
+        "Flight Type",
+        sorted(
+            flight_df["flightType"].unique()
+        )
     )
 
-    avg_flight_price = st.number_input(
-        "Average Flight Price"
+    agency = st.selectbox(
+        "Agency",
+        sorted(
+            flight_df["agency"].unique()
+        )
     )
 
-    avg_distance = st.number_input(
-        "Average Distance"
+    distance = st.selectbox(
+        "Distance",
+        sorted(
+            flight_df["distance"].unique()
+        )
     )
 
-    avg_travel_time = st.number_input(
-        "Average Travel Time"
+    time = st.selectbox(
+        "Travel Time",
+        sorted(
+            flight_df["time"].unique()
+        )
     )
 
-    avg_hotel_spend = st.number_input(
-        "Average Hotel Spend"
-    )
-
-    avg_stay_days = st.number_input(
-        "Average Stay Days"
-    )
-
-    flight_type = st.number_input(
-        "Flight Type Encoded"
-    )
-
-    agency = st.number_input(
-        "Agency Encoded"
+    price = st.selectbox(
+        "Flight Price",
+        sorted(
+            flight_df["price"].unique()
+        )
     )
 
     if st.button(
@@ -190,14 +203,11 @@ elif menu == "Gender Classification":
         payload = {
             "age": age,
             "company": company,
-            "trip_count": trip_count,
-            "avg_flight_price": avg_flight_price,
-            "avg_distance": avg_distance,
-            "avg_travel_time": avg_travel_time,
-            "avg_hotel_spend": avg_hotel_spend,
-            "avg_stay_days": avg_stay_days,
             "flightType": flight_type,
-            "agency": agency
+            "agency": agency,
+            "distance": distance,
+            "time": time,
+            "price": price
         }
 
         response = requests.post(

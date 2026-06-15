@@ -43,6 +43,45 @@ hotel_recommendation = joblib.load(
 )
 
 # ==================================================
+# Load Preprocessing Artifacts
+# ==================================================
+
+flight_columns = joblib.load(
+    os.path.join(
+        MODELS_DIR,
+        "flight_columns.pkl"
+    )
+)
+
+company_encoder = joblib.load(
+    os.path.join(
+        MODELS_DIR,
+        "company_encoder.pkl"
+    )
+)
+
+flight_encoder = joblib.load(
+    os.path.join(
+        MODELS_DIR,
+        "flight_encoder.pkl"
+    )
+)
+
+agency_encoder = joblib.load(
+    os.path.join(
+        MODELS_DIR,
+        "agency_encoder.pkl"
+    )
+)
+
+gender_encoder = joblib.load(
+    os.path.join(
+        MODELS_DIR,
+        "gender_encoder.pkl"
+    )
+)
+
+# ==================================================
 # Home Route
 # ==================================================
 
@@ -71,12 +110,22 @@ def predict_price():
             [data]
         )
 
+        features = pd.get_dummies(
+            features
+        )
+
+        features = features.reindex(
+            columns=flight_columns,
+            fill_value=0
+        )
+
         prediction = flight_model.predict(
             features
         )[0]
 
         return jsonify({
-            "predicted_price": round(
+            "predicted_price":
+            round(
                 float(prediction),
                 2
             )
@@ -106,22 +155,37 @@ def predict_gender():
             [data]
         )
 
+        features["company"] = (
+            company_encoder.transform(
+                features["company"]
+            )
+        )
+
+        features["flightType"] = (
+            flight_encoder.transform(
+                features["flightType"]
+            )
+        )
+
+        features["agency"] = (
+            agency_encoder.transform(
+                features["agency"]
+            )
+        )
+
         prediction = gender_model.predict(
             features
         )[0]
 
-        gender_map = {
-            0: "female",
-            1: "male",
-            2: "unknown"
-        }
+        gender_value = (
+            gender_encoder.inverse_transform(
+                [prediction]
+            )[0]
+        )
 
         return jsonify({
             "predicted_gender":
-            gender_map.get(
-                int(prediction),
-                str(prediction)
-            )
+            gender_value
         })
 
     except Exception as e:
