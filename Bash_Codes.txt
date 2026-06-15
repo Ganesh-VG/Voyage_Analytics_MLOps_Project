@@ -1,0 +1,17 @@
+# Running containers
+docker ps
+
+# All containers
+docker ps -a
+
+# Stop container
+docker stop <container_id>
+
+# Remove container
+docker rm <container_id>
+
+# Remove image
+docker rmi voyage-analytics
+
+# Run container again
+docker run -p 5000:5000 voyage-analytics
