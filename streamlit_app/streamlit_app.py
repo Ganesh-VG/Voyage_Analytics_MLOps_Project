@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 
 flight_df = pd.read_csv(
-    "../data/processed/flight_user.csv"
+    "./data/processed/flight_user.csv"
 )
 
 st.set_page_config(
@@ -74,7 +74,7 @@ if menu == "Flight Price Prediction":
     # )
 
     flight_df = pd.read_csv(
-    "../data/processed/flight_user.csv"
+    "./data/processed/flight_user.csv"
     )
 
     origin = st.selectbox(
