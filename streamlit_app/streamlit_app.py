@@ -27,54 +27,109 @@ menu = st.sidebar.selectbox(
 # Flight Price Prediction
 # ==================================================
 
+# if menu == "Flight Price Prediction":
+
+#     st.header(
+#         "Flight Price Prediction"
+#     )
+
+#     flight_df = pd.read_csv(
+#         "./data/processed/flight_user.csv"
+# )
+
+#     origin = st.selectbox(
+#         "From",
+#         sorted(
+#             flight_df["from"].unique()
+#         )
+#     )
+
+#     destination = st.selectbox(
+#         "To",
+#         sorted(
+#             flight_df["to"].unique()
+#         )
+#     )
+
+#     agency = st.selectbox(
+#         "Agency",
+#         sorted(
+#             flight_df["agency"].unique()
+#         )
+#     )
+
+#     flight_type = st.selectbox(
+#         "Flight Type",
+#         sorted(
+#             flight_df["flightType"].unique()
+#         )
+#     )
+
+#     month = st.selectbox(
+#         "Month",
+#         list(range(1, 13))
+#     )
+
+#     route_data = flight_df[
+#         (flight_df["from"] == origin)
+#         &
+#         (flight_df["to"] == destination)
+#     ]
+
+#     if len(route_data) > 0:
+
+#         distance = float(
+#             route_data["distance"].iloc[0]
+#         )
+
+#         travel_time = float(
+#             route_data["time"].iloc[0]
+#         )
+
+#         st.info(
+#             f"Distance: {distance} km"
+#         )
+
+#         st.info(
+#             f"Travel Time: {travel_time} hrs"
+#         )
+
+#     if st.button(
+#         "Predict Price"
+#     ):
+
+#         payload = {
+#             "distance": distance,
+#             "time": travel_time,
+#             "month": month,
+#             "flightType": flight_type,
+#             "agency": agency,
+#             "from": origin,
+#             "to": destination
+#         }
+
+#         response = requests.post(
+#             "http://localhost:5000/predict_price",
+#             json=payload
+#         )
+
+#         st.success(
+#             response.json()
+#         )
+
+
+# ==================================================
+# Flight Price Prediction
+# ==================================================
+
 if menu == "Flight Price Prediction":
 
-    st.header("Flight Price Prediction")
-
-    distance = st.number_input(
-        "Distance",
-        min_value=0.0
+    st.header(
+        "Flight Price Prediction"
     )
-
-    time = st.number_input(
-        "Travel Time",
-        min_value=0.0
-    )
-
-    # month = st.number_input(
-    #     "Month",
-    #     min_value=1,
-    #     max_value=12
-    # )
-
-    # flight_type = st.selectbox(
-    #     "Flight Type",
-    #     [
-    #         "economic",
-    #         "premium",
-    #         "firstClass"
-    #     ]
-    # )
-
-    # agency = st.selectbox(
-    #     "Agency",
-    #     [
-    #         "CloudFy",
-    #         "FlyingDrops",
-    #         "Rainbow"
-    #     ]
-    # )
-
-    # origin = st.text_input(
-    #     "From"
-    # )
-
-    # destination = st.text_input(
-    #     "To"
-    # )
 
     flight_df = pd.read_csv(
-    "./data/processed/flight_user.csv"
+        "./data/processed/flight_user.csv"
     )
 
     origin = st.selectbox(
@@ -84,18 +139,22 @@ if menu == "Flight Price Prediction":
         )
     )
 
+    valid_destinations = sorted(
+        flight_df[
+            flight_df["from"] == origin
+        ]["to"].unique()
+    )
+
     destination = st.selectbox(
         "To",
-        sorted(
-            flight_df["to"].unique()
-        )
+        valid_destinations
     )
 
     agency = st.selectbox(
-    "Agency",
-    sorted(
-        flight_df["agency"].unique()
-    )
+        "Agency",
+        sorted(
+            flight_df["agency"].unique()
+        )
     )
 
     flight_type = st.selectbox(
@@ -110,28 +169,94 @@ if menu == "Flight Price Prediction":
         list(range(1, 13))
     )
 
+    route_data = flight_df[
+        (flight_df["from"] == origin)
+        &
+        (flight_df["to"] == destination)
+    ]
+
+    distance = None
+    travel_time = None
+
+    if not route_data.empty:
+
+        distance = round(
+            float(
+                route_data["distance"].mean()
+            ),
+            2
+        )
+
+        travel_time = round(
+            float(
+                route_data["time"].mean()
+            ),
+            2
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                "Distance (km)",
+                distance
+            )
+
+        with col2:
+            st.metric(
+                "Travel Time (hrs)",
+                travel_time
+            )
+
     if st.button(
         "Predict Price"
     ):
 
-        payload = {
-            "distance": distance,
-            "time": time,
-            "month": month,
-            "flightType": flight_type,
-            "agency": agency,
-            "from": origin,
-            "to": destination
-        }
+        if distance is None:
 
-        response = requests.post(
-            "http://localhost:5000/predict_price",
-            json=payload
-        )
+            st.error(
+                "Selected route not found."
+            )
 
-        st.success(
-            response.json()
-        )
+        else:
+
+            payload = {
+                "distance": distance,
+                "time": travel_time,
+                "month": month,
+                "flightType": flight_type,
+                "agency": agency,
+                "from": origin,
+                "to": destination
+            }
+
+            response = requests.post(
+                "http://localhost:5000/predict_price",
+                json=payload
+            )
+
+            if response.status_code == 200:
+
+                result = response.json()
+
+                if "predicted_price" in result:
+
+                    st.success(
+                        f"Predicted Flight Price: ₹ {result['predicted_price']}"
+                    )
+
+                else:
+
+                    st.error(
+                        result
+                    )
+
+            else:
+
+                st.error(
+                    f"API Error: {response.status_code}"
+                )
+
 
 # ==================================================
 # Gender Classification

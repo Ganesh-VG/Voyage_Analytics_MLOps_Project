@@ -110,14 +110,29 @@ def predict_price():
             [data]
         )
 
+        print("Before encoding")
+        print(features.columns.tolist())
+
         features = pd.get_dummies(
             features
         )
+
+        print("After encoding")
+        print(features.columns.tolist())
 
         features = features.reindex(
             columns=flight_columns,
             fill_value=0
         )
+
+        print("After reindex")
+        print(features.columns.tolist())
+
+        print("Model expects:")
+        print(list(flight_model.feature_names_in_))
+
+        print("Features supplied:")
+        print(list(features.columns))
 
         prediction = flight_model.predict(
             features
