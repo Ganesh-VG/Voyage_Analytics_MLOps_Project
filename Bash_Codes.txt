@@ -24,3 +24,9 @@ python api/app.py
 
 # Docker build
 docker build -t voyage-api -f api/Dockerfile .
+
+# Mlflow Run
+mlflow ui --backend-store-uri sqlite:///mlflow/mlflow.db --default-artifact-root ./mlflow/artifacts --host 0.0.0.0 --port 5000
+
+# Docker scheduler
+docker exec -it airflow_scheduler bash

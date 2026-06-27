@@ -106,16 +106,39 @@ MLFLOW_DB = os.path.join(
 
 )
 
+# ==========================================
+# MLflow Configuration
+# ==========================================
+
 mlflow.set_tracking_uri(
-
     f"sqlite:///{MLFLOW_DB}"
-
 )
 
+EXPERIMENT_NAME = "Flight Price Prediction"
+
+ARTIFACT_DIR = os.path.join(
+    MLFLOW_DIR,
+    "artifacts"
+)
+
+os.makedirs(
+    ARTIFACT_DIR,
+    exist_ok=True
+)
+
+experiment = mlflow.get_experiment_by_name(
+    EXPERIMENT_NAME
+)
+
+if experiment is None:
+
+    mlflow.create_experiment(
+        name=EXPERIMENT_NAME,
+        artifact_location=f"file://{ARTIFACT_DIR}"
+    )
+
 mlflow.set_experiment(
-
-    "Flight Price Prediction"
-
+    EXPERIMENT_NAME
 )
 
 # ==================================================
