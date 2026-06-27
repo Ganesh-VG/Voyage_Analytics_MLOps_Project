@@ -3,24 +3,34 @@ version: "3.8"
 services:
 
   postgres:
+
     image: postgres:15
+
     container_name: airflow_postgres
 
+    restart: always
+
     environment:
+
       POSTGRES_USER: airflow
+
       POSTGRES_PASSWORD: airflow
+
       POSTGRES_DB: airflow
 
     volumes:
+
       - postgres-db-volume:/var/lib/postgresql/data
 
-    restart: always
 
   airflow-init:
 
     build: .
 
+    container_name: airflow_init
+
     depends_on:
+
       - postgres
 
     environment:
@@ -28,6 +38,8 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
 
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+
+      PROJECT_ROOT: /opt/airflow
 
       _AIRFLOW_WWW_USER_USERNAME: admin
 
@@ -53,11 +65,16 @@ services:
 
       - ./plugins:/opt/airflow/plugins
 
+      - ./config:/opt/airflow/config
+
       - ../src:/opt/airflow/src
 
       - ../models:/opt/airflow/models
 
       - ../data:/opt/airflow/data
+
+      - ../mlflow:/opt/airflow/mlflow
+
 
   airflow-webserver:
 
@@ -68,11 +85,14 @@ services:
     depends_on:
 
       airflow-init:
+
         condition: service_completed_successfully
 
     ports:
 
       - "8080:8080"
+
+    command: webserver
 
     environment:
 
@@ -80,7 +100,7 @@ services:
 
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
-    command: webserver
+      PROJECT_ROOT: /opt/airflow
 
     volumes:
 
@@ -90,11 +110,18 @@ services:
 
       - ./plugins:/opt/airflow/plugins
 
+      - ./config:/opt/airflow/config
+
       - ../src:/opt/airflow/src
 
       - ../models:/opt/airflow/models
 
       - ../data:/opt/airflow/data
+
+      - ../mlflow:/opt/airflow/mlflow
+
+    restart: always
+
 
   airflow-scheduler:
 
@@ -105,6 +132,7 @@ services:
     depends_on:
 
       airflow-init:
+
         condition: service_completed_successfully
 
     command: scheduler
@@ -115,6 +143,8 @@ services:
 
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
+      PROJECT_ROOT: /opt/airflow
+
     volumes:
 
       - ./dags:/opt/airflow/dags
@@ -123,11 +153,18 @@ services:
 
       - ./plugins:/opt/airflow/plugins
 
+      - ./config:/opt/airflow/config
+
       - ../src:/opt/airflow/src
 
       - ../models:/opt/airflow/models
 
       - ../data:/opt/airflow/data
+
+      - ../mlflow:/opt/airflow/mlflow
+
+    restart: always
+
 
 volumes:
 
