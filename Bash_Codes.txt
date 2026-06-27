@@ -23,4 +23,4 @@ streamlit run streamlit_app/streamlit_app.py
 python api/app.py
 
 # Docker build
-docker build -t voyage-api .
+docker build -t voyage-api -f api/Dockerfile .
