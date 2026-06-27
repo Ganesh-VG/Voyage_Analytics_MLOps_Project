@@ -59,9 +59,25 @@ MODELS_DIR = os.path.join(
 
 )
 
-MLFLOW_DB = os.path.join(
+MLFLOW_DIR = os.path.join(
 
     BASE_DIR,
+
+    "mlflow"
+
+)
+
+os.makedirs(
+
+    MLFLOW_DIR,
+
+    exist_ok=True
+
+)
+
+MLFLOW_DB = os.path.join(
+
+    MLFLOW_DIR,
 
     "mlflow.db"
 
