@@ -1,0 +1,6 @@
+pandas
+numpy
+scikit-learn
+xgboost
+joblib
+mlflow==2.17.2

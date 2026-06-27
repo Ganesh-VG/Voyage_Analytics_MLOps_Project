@@ -1,10 +1,13 @@
-import pandas as pd
-import numpy as np
-
-import joblib
 import os
+import joblib
+import mlflow
+import mlflow.sklearn
+
+import numpy as np
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
+
 from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.metrics import (
@@ -13,85 +16,223 @@ from sklearn.metrics import (
     r2_score
 )
 
-import mlflow
-import mlflow.sklearn
 
-# ==========================================
+# ==================================================
+# Project Paths
+# ==================================================
+
+BASE_DIR = os.environ.get(
+
+    "PROJECT_ROOT",
+
+    os.path.abspath(
+
+        os.path.join(
+
+            os.path.dirname(__file__),
+
+            "..",
+
+            ".."
+
+        )
+
+    )
+
+)
+
+DATA_DIR = os.path.join(
+
+    BASE_DIR,
+
+    "data",
+
+    "processed"
+
+)
+
+MODELS_DIR = os.path.join(
+
+    BASE_DIR,
+
+    "models"
+
+)
+
+MLFLOW_DB = os.path.join(
+
+    BASE_DIR,
+
+    "mlflow.db"
+
+)
+
+
+# ==================================================
 # MLflow Configuration
-# ==========================================
+# ==================================================
 
 mlflow.set_tracking_uri(
-    "sqlite:///mlflow.db"
+
+    f"sqlite:///{MLFLOW_DB}"
+
 )
 
 mlflow.set_experiment(
+
     "Flight Price Prediction"
+
 )
 
 
+# ==================================================
+# Flight Price Model Training
+# ==================================================
+
 def train_flight_price_model():
 
-    print("=" * 50)
-    print("Training Flight Price Model")
-    print("=" * 50)
+    print("=" * 60)
+
+    print("Flight Price Model Training Started")
+
+    print("=" * 60)
 
     # ==========================================
     # Load Dataset
     # ==========================================
 
     flight_user = pd.read_csv(
-        "data/processed/flight_user.csv"
+
+        os.path.join(
+
+            DATA_DIR,
+
+            "flight_user.csv"
+
+        )
+
+    )
+
+    print(
+
+        f"Dataset Shape : {flight_user.shape}"
+
     )
 
     # ==========================================
-    # Features
+    # Feature Selection
     # ==========================================
 
     feature_columns = [
+
         "distance",
+
         "time",
+
         "flightType",
+
         "agency",
+
         "from",
+
         "to",
+
         "month"
+
     ]
 
+    target_column = "price"
+
     X = flight_user[
+
         feature_columns
+
     ]
 
     y = flight_user[
-        "price"
+
+        target_column
+
     ]
 
-    # ==========================================
-    # Encoding
-    # ==========================================
+    print(
 
-    X = pd.get_dummies(
-        X,
-        columns=[
-            "flightType",
-            "agency",
-            "from",
-            "to"
-        ],
-        drop_first=True
+        f"Feature Matrix Shape : {X.shape}"
+
+    )
+
+    print(
+
+        f"Target Shape : {y.shape}"
+
     )
 
     # ==========================================
-    # Save Deployment Columns
+    # Encode Categorical Features
+    # ==========================================
+
+    categorical_columns = [
+
+        "flightType",
+
+        "agency",
+
+        "from",
+
+        "to"
+
+    ]
+
+    X = pd.get_dummies(
+
+        X,
+
+        columns=categorical_columns,
+
+        drop_first=True
+
+    )
+
+    print(
+
+        f"Encoded Feature Shape : {X.shape}"
+
+    )
+
+    # ==========================================
+    # Create Models Folder
     # ==========================================
 
     os.makedirs(
-        "models",
+
+        MODELS_DIR,
+
         exist_ok=True
+
     )
 
+    # ==========================================
+    # Save Deployment Feature Columns
+    # ==========================================
+
     joblib.dump(
+
         X.columns.tolist(),
-        "models/flight_columns.pkl"
+
+        os.path.join(
+
+            MODELS_DIR,
+
+            "flight_columns.pkl"
+
+        )
+
+    )
+
+    print(
+
+        "Deployment Feature Columns Saved"
+
     )
 
     # ==========================================
@@ -99,231 +240,319 @@ def train_flight_price_model():
     # ==========================================
 
     X_train, X_test, y_train, y_test = train_test_split(
+
         X,
+
         y,
+
         test_size=0.20,
+
         random_state=42
+
     )
 
-# ==========================================
-# Train Model & Track with MLflow
-# ==========================================
+    print(
 
-with mlflow.start_run(
-    run_name="Random Forest"
-):
+        f"Training Samples : {len(X_train)}"
 
-    rf = RandomForestRegressor(
-        n_estimators=100,
-        random_state=42
     )
 
-    rf.fit(
-        X_train,
-        y_train
+    print(
+
+        f"Testing Samples : {len(X_test)}"
+
     )
 
-    predictions = rf.predict(
-        X_test
-    )
+    # ==========================================
+    # Train Model & Track with MLflow
+    # ==========================================
 
-    mae = mean_absolute_error(
-        y_test,
-        predictions
-    )
+    with mlflow.start_run(
+        run_name="Random Forest"
+    ):
 
-    rmse = np.sqrt(
-        mean_squared_error(
-            y_test,
-            predictions
+        # ==========================================
+        # Model Training
+        # ==========================================
+
+        rf = RandomForestRegressor(
+
+            n_estimators=100,
+
+            random_state=42
+
         )
-    )
 
-    r2 = r2_score(
-        y_test,
-        predictions
-    )
+        rf.fit(
 
-    print(f"MAE : {mae:.4f}")
-    print(f"RMSE: {rmse:.4f}")
-    print(f"R2  : {r2:.4f}")
+            X_train,
 
-    # ==========================================
-    # Save Model
-    # ==========================================
+            y_train
 
-    joblib.dump(
-        rf,
-        "models/flight_price_model.pkl"
-    )
-
-    # ==========================================
-    # Save Feature Columns
-    # ==========================================
-
-    joblib.dump(
-        X.columns.tolist(),
-        "models/flight_columns.pkl"
-    )
-
-    # ==========================================
-    # Feature Importance
-    # ==========================================
-
-    feature_importance = pd.DataFrame({
-
-        "Feature": X.columns,
-
-        "Importance": rf.feature_importances_
-
-    })
-
-    feature_importance = feature_importance.sort_values(
-
-        by="Importance",
-
-        ascending=False
-
-    )
-
-    feature_importance.to_csv(
-
-        "models/feature_importance.csv",
-
-        index=False
-
-    )
-
-    # ==========================================
-    # MLflow Parameters
-    # ==========================================
-
-    mlflow.log_param(
-        "model_type",
-        "RandomForestRegressor"
-    )
-
-    mlflow.log_param(
-        "n_estimators",
-        100
-    )
-
-    mlflow.log_param(
-        "random_state",
-        42
-    )
-
-    mlflow.log_param(
-        "dataset_rows",
-        len(flight_user)
-    )
-
-    mlflow.log_param(
-        "feature_count",
-        X.shape[1]
-    )
-
-    # ==========================================
-    # MLflow Metrics
-    # ==========================================
-
-    mlflow.log_metric(
-        "MAE",
-        mae
-    )
-
-    mlflow.log_metric(
-        "RMSE",
-        rmse
-    )
-
-    mlflow.log_metric(
-        "R2",
-        r2
-    )
-
-    # ==========================================
-    # MLflow Model
-    # ==========================================
-
-    mlflow.sklearn.log_model(
-
-        rf,
-
-        artifact_path="flight_price_model"
-
-    )
-
-    # ==========================================
-    # MLflow Artifacts
-    # ==========================================
-
-    mlflow.log_artifact(
-        "models/flight_price_model.pkl"
-    )
-
-    mlflow.log_artifact(
-        "models/flight_columns.pkl"
-    )
-
-    mlflow.log_artifact(
-        "models/feature_importance.csv"
-    )
-
-    print("=" * 50)
-    print("Training Completed Successfully")
-    print("=" * 50)
-
-    # ==========================================
-    # Evaluation
-    # ==========================================
-
-    predictions = rf.predict(
-        X_test
-    )
-
-    mae = mean_absolute_error(
-        y_test,
-        predictions
-    )
-
-    rmse = np.sqrt(
-        mean_squared_error(
-            y_test,
-            predictions
         )
-    )
 
-    r2 = r2_score(
-        y_test,
-        predictions
-    )
+        print(
+            "Random Forest Model Trained Successfully"
+        )
 
-    print(
-        f"MAE : {mae:.4f}"
-    )
+        # ==========================================
+        # Predictions
+        # ==========================================
 
-    print(
-        f"RMSE : {rmse:.4f}"
-    )
+        predictions = rf.predict(
 
-    print(
-        f"R2 : {r2:.4f}"
-    )
+            X_test
 
-    # ==========================================
-    # Save Model
-    # ==========================================
+        )
 
-    joblib.dump(
-        rf,
-        "models/flight_price_model.pkl"
-    )
+        # ==========================================
+        # Model Evaluation
+        # ==========================================
 
-    print(
-        "Flight Price Model Saved"
-    )
+        mae = mean_absolute_error(
 
+            y_test,
+
+            predictions
+
+        )
+
+        rmse = np.sqrt(
+
+            mean_squared_error(
+
+                y_test,
+
+                predictions
+
+            )
+
+        )
+
+        r2 = r2_score(
+
+            y_test,
+
+            predictions
+
+        )
+
+        print("=" * 60)
+
+        print("Model Performance")
+
+        print("=" * 60)
+
+        print(f"MAE  : {mae:.4f}")
+
+        print(f"RMSE : {rmse:.4f}")
+
+        print(f"R2   : {r2:.4f}")
+
+        # ==========================================
+        # Save Trained Model
+        # ==========================================
+
+        joblib.dump(
+
+            rf,
+
+            os.path.join(
+
+                MODELS_DIR,
+
+                "flight_price_model.pkl"
+
+            )
+
+        )
+
+        print(
+            "Flight Price Model Saved"
+        )
+
+        # ==========================================
+        # Feature Importance
+        # ==========================================
+
+        feature_importance = pd.DataFrame(
+
+            {
+
+                "Feature": X.columns,
+
+                "Importance": rf.feature_importances_
+
+            }
+
+        )
+
+        feature_importance = feature_importance.sort_values(
+
+            by="Importance",
+
+            ascending=False
+
+        )
+
+        feature_importance.to_csv(
+
+            os.path.join(
+
+                MODELS_DIR,
+
+                "feature_importance.csv"
+
+            ),
+
+            index=False
+
+        )
+
+        print(
+            "Feature Importance Saved"
+        )
+
+        # ==========================================
+        # MLflow Parameters
+        # ==========================================
+
+        mlflow.log_param(
+
+            "model_type",
+
+            "RandomForestRegressor"
+
+        )
+
+        mlflow.log_param(
+
+            "n_estimators",
+
+            100
+
+        )
+
+        mlflow.log_param(
+
+            "random_state",
+
+            42
+
+        )
+
+        mlflow.log_param(
+
+            "dataset_rows",
+
+            len(flight_user)
+
+        )
+
+        mlflow.log_param(
+
+            "feature_count",
+
+            X.shape[1]
+
+        )
+
+        # ==========================================
+        # MLflow Metrics
+        # ==========================================
+
+        mlflow.log_metric(
+
+            "MAE",
+
+            mae
+
+        )
+
+        mlflow.log_metric(
+
+            "RMSE",
+
+            rmse
+
+        )
+
+        mlflow.log_metric(
+
+            "R2",
+
+            r2
+
+        )
+
+        # ==========================================
+        # Log ML Model
+        # ==========================================
+
+        mlflow.sklearn.log_model(
+
+            sk_model=rf,
+
+            artifact_path="flight_price_model"
+
+        )
+
+        # ==========================================
+        # Log Artifacts
+        # ==========================================
+
+        mlflow.log_artifact(
+
+            os.path.join(
+
+                MODELS_DIR,
+
+                "flight_price_model.pkl"
+
+            )
+
+        )
+
+        mlflow.log_artifact(
+
+            os.path.join(
+
+                MODELS_DIR,
+
+                "flight_columns.pkl"
+
+            )
+
+        )
+
+        mlflow.log_artifact(
+
+            os.path.join(
+
+                MODELS_DIR,
+
+                "feature_importance.csv"
+
+            )
+
+        )
+
+        print("=" * 60)
+
+        print("MLflow Logging Completed")
+
+        print("=" * 60)
+
+    print("=" * 60)
+
+    print("Flight Price Model Training Completed Successfully")
+
+    print("=" * 60)
+
+
+# ==================================================
+# Run Script
+# ==================================================
 
 if __name__ == "__main__":
 

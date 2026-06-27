@@ -1,24 +1,42 @@
 from airflow import DAG
-
 from airflow.operators.python import PythonOperator
 
 from datetime import datetime
 
 import subprocess
 import os
+import sys
 
 
 # ==================================================
-# Project Root
+# Project Root (Docker Container)
 # ==================================================
 
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        ".."
+PROJECT_ROOT = "/opt/airflow"
+
+
+# ==================================================
+# Helper Function
+# ==================================================
+
+def run_script(script_path):
+
+    full_path = os.path.join(
+        PROJECT_ROOT,
+        script_path
     )
-)
+
+    print("=" * 60)
+    print(f"Running: {full_path}")
+    print("=" * 60)
+
+    subprocess.run(
+        [
+            sys.executable,
+            full_path
+        ],
+        check=True
+    )
 
 
 # ==================================================
@@ -27,86 +45,41 @@ PROJECT_ROOT = os.path.abspath(
 
 def preprocess_data():
 
-    subprocess.run(
-        [
-            "python",
-            os.path.join(
-                PROJECT_ROOT,
-                "src",
-                "preprocessing",
-                "preprocessing.py"
-            )
-        ],
-        check=True
+    run_script(
+        "src/preprocessing/preprocessing.py"
     )
 
 
 def train_flight_price_model():
 
-    subprocess.run(
-        [
-            "python",
-            os.path.join(
-                PROJECT_ROOT,
-                "src",
-                "model_training",
-                "train_flight_price_model.py"
-            )
-        ],
-        check=True
+    run_script(
+        "src/model_training/train_flight_price_model.py"
     )
 
 
 def train_gender_classifier():
 
-    subprocess.run(
-        [
-            "python",
-            os.path.join(
-                PROJECT_ROOT,
-                "src",
-                "model_training",
-                "train_gender_classifier.py"
-            )
-        ],
-        check=True
+    run_script(
+        "src/model_training/train_gender_classifier.py"
     )
 
 
 def train_hotel_recommender():
 
-    subprocess.run(
-        [
-            "python",
-            os.path.join(
-                PROJECT_ROOT,
-                "src",
-                "model_training",
-                "train_hotel_recommender.py"
-            )
-        ],
-        check=True
+    run_script(
+        "src/model_training/train_hotel_recommender.py"
     )
 
 
 def model_validation():
 
-    subprocess.run(
-        [
-            "python",
-            os.path.join(
-                PROJECT_ROOT,
-                "src",
-                "evaluation",
-                "model_evaluation.py"
-            )
-        ],
-        check=True
+    run_script(
+        "src/evaluation/model_evaluation.py"
     )
 
 
 # ==================================================
-# DAG Definition
+# Default Arguments
 # ==================================================
 
 default_args = {
@@ -117,6 +90,10 @@ default_args = {
 
 }
 
+
+# ==================================================
+# DAG Definition
+# ==================================================
 
 with DAG(
 
@@ -143,6 +120,7 @@ with DAG(
     ]
 
 ) as dag:
+
 
     preprocess_task = PythonOperator(
 
@@ -189,14 +167,4 @@ with DAG(
     )
 
 
-    (
-        preprocess_task
-        >>
-        flight_training_task
-        >>
-        gender_training_task
-        >>
-        hotel_training_task
-        >>
-        validation_task
-    )
+    preprocess_task >> flight_training_task >> gender_training_task >> hotel_training_task >> validation_task
