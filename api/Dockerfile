@@ -6,7 +6,7 @@ COPY api/app.py api/
 COPY api/docker_requirements.txt .
 COPY models models/
 
-RUN pip install --no-cache-dir -r docker_requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 5000
 
