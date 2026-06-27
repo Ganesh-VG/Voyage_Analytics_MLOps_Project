@@ -16,7 +16,6 @@ from sklearn.metrics import (
     r2_score
 )
 
-
 # ==================================================
 # Project Paths
 # ==================================================
@@ -67,13 +66,37 @@ MLFLOW_DIR = os.path.join(
 
 )
 
-os.makedirs(
+ARTIFACT_DIR = os.path.join(
 
     MLFLOW_DIR,
+
+    "artifacts"
+
+)
+
+# ==================================================
+# Create Required Folders
+# ==================================================
+
+os.makedirs(
+
+    MODELS_DIR,
 
     exist_ok=True
 
 )
+
+os.makedirs(
+
+    ARTIFACT_DIR,
+
+    exist_ok=True
+
+)
+
+# ==================================================
+# MLflow Configuration
+# ==================================================
 
 MLFLOW_DB = os.path.join(
 
@@ -82,11 +105,6 @@ MLFLOW_DB = os.path.join(
     "mlflow.db"
 
 )
-
-
-# ==================================================
-# MLflow Configuration
-# ==================================================
 
 mlflow.set_tracking_uri(
 
@@ -99,7 +117,6 @@ mlflow.set_experiment(
     "Flight Price Prediction"
 
 )
-
 
 # ==================================================
 # Flight Price Model Training
@@ -160,15 +177,11 @@ def train_flight_price_model():
     target_column = "price"
 
     X = flight_user[
-
         feature_columns
-
     ]
 
     y = flight_user[
-
         target_column
-
     ]
 
     print(
@@ -184,26 +197,24 @@ def train_flight_price_model():
     )
 
     # ==========================================
-    # Encode Categorical Features
+    # One-Hot Encoding
     # ==========================================
-
-    categorical_columns = [
-
-        "flightType",
-
-        "agency",
-
-        "from",
-
-        "to"
-
-    ]
 
     X = pd.get_dummies(
 
         X,
 
-        columns=categorical_columns,
+        columns=[
+
+            "flightType",
+
+            "agency",
+
+            "from",
+
+            "to"
+
+        ],
 
         drop_first=True
 
@@ -216,19 +227,7 @@ def train_flight_price_model():
     )
 
     # ==========================================
-    # Create Models Folder
-    # ==========================================
-
-    os.makedirs(
-
-        MODELS_DIR,
-
-        exist_ok=True
-
-    )
-
-    # ==========================================
-    # Save Deployment Feature Columns
+    # Save Deployment Columns
     # ==========================================
 
     joblib.dump(
@@ -247,7 +246,7 @@ def train_flight_price_model():
 
     print(
 
-        "Deployment Feature Columns Saved"
+        "Flight Feature Columns Saved"
 
     )
 
@@ -280,15 +279,17 @@ def train_flight_price_model():
     )
 
     # ==========================================
-    # Train Model & Track with MLflow
+    # Start MLflow Run
     # ==========================================
 
     with mlflow.start_run(
-        run_name="Random Forest"
+
+        run_name="Random Forest Regressor"
+
     ):
 
         # ==========================================
-        # Model Training
+        # Train Random Forest Model
         # ==========================================
 
         rf = RandomForestRegressor(
@@ -308,7 +309,9 @@ def train_flight_price_model():
         )
 
         print(
+
             "Random Forest Model Trained Successfully"
+
         )
 
         # ==========================================
@@ -322,7 +325,7 @@ def train_flight_price_model():
         )
 
         # ==========================================
-        # Model Evaluation
+        # Evaluation Metrics
         # ==========================================
 
         mae = mean_absolute_error(
@@ -384,7 +387,9 @@ def train_flight_price_model():
         )
 
         print(
+
             "Flight Price Model Saved"
+
         )
 
         # ==========================================
@@ -426,7 +431,9 @@ def train_flight_price_model():
         )
 
         print(
+
             "Feature Importance Saved"
+
         )
 
         # ==========================================
@@ -502,7 +509,7 @@ def train_flight_price_model():
         )
 
         # ==========================================
-        # Log ML Model
+        # Log MLflow Model
         # ==========================================
 
         mlflow.sklearn.log_model(
@@ -514,7 +521,7 @@ def train_flight_price_model():
         )
 
         # ==========================================
-        # Log Artifacts
+        # Log Deployment Artifacts
         # ==========================================
 
         mlflow.log_artifact(
@@ -558,13 +565,6 @@ def train_flight_price_model():
         print("MLflow Logging Completed")
 
         print("=" * 60)
-
-    print("=" * 60)
-
-    print("Flight Price Model Training Completed Successfully")
-
-    print("=" * 60)
-
 
 # ==================================================
 # Run Script
