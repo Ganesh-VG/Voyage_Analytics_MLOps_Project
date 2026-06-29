@@ -2,29 +2,120 @@ pipeline {
 
     agent any
 
+    environment {
+        AIRFLOW_CONTAINER = "airflow_scheduler"
+        DAG_ID = "travel_pipeline"
+        API_IMAGE = "voyage-api:latest"
+    }
+
     stages {
 
-        stage('Checkout') {
-
+        stage('Checkout Source') {
             steps {
                 checkout scm
             }
-
         }
 
         stage('Project Information') {
-
             steps {
+                sh '''
+                echo "===================================="
+                echo "Workspace"
+                echo "===================================="
+                pwd
+                ls -la
 
-                sh 'pwd'
+                echo
+                echo "Python Version"
+                python3 --version || true
 
-                sh 'ls -la'
+                echo
+                echo "Docker Version"
+                docker --version
 
-                sh 'python3 --version'
-
-                sh 'docker --version'
-
+                echo
+                echo "Running Containers"
+                docker ps
+                '''
             }
+        }
+
+        stage('Trigger Airflow DAG') {
+            steps {
+                sh '''
+                echo "===================================="
+                echo "Triggering Airflow DAG..."
+                echo "===================================="
+
+                docker exec ${AIRFLOW_CONTAINER} \
+                airflow dags trigger ${DAG_ID}
+                '''
+            }
+        }
+
+        stage('Wait For DAG Completion') {
+            steps {
+                sh '''
+                echo "===================================="
+                echo "Waiting for DAG Completion..."
+                echo "===================================="
+
+                while true
+                do
+                    STATE=$(docker exec ${AIRFLOW_CONTAINER} \
+                    airflow dags list-runs -d ${DAG_ID} --no-backfill \
+                    | grep manual__ | head -1 | awk '{print $NF}')
+
+                    echo "Current State : $STATE"
+
+                    if [ "$STATE" = "success" ]; then
+                        echo "DAG completed successfully."
+                        break
+                    fi
+
+                    if [ "$STATE" = "failed" ]; then
+                        echo "DAG failed."
+                        exit 1
+                    fi
+
+                    sleep 15
+                done
+                '''
+            }
+        }
+
+        stage('Build API Docker Image') {
+            steps {
+                sh '''
+                echo "===================================="
+                echo "Building Voyage API Docker Image..."
+                echo "===================================="
+
+                docker build \
+                    -t ${API_IMAGE} \
+                    -f api/Dockerfile \
+                    .
+                '''
+            }
+        }
+
+    }
+
+    post {
+
+        success {
+
+            echo '===================================='
+            echo 'Pipeline Completed Successfully!'
+            echo '===================================='
+
+        }
+
+        failure {
+
+            echo '===================================='
+            echo 'Pipeline Failed!'
+            echo '===================================='
 
         }
 
