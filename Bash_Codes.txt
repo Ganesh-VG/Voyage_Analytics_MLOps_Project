@@ -43,3 +43,20 @@ Open http://localhost:8080
 
 # Checking the Containers
 docker compose ps
+
+# Run Jenkins - first set the directory to jenkins
+docker compose build
+docker compose up -d
+
+# Use the below code to generate the password in jenkins for the first time
+docker exec voyage_jenkins sh -c "cat /var/jenkins_home/secrets/initialAdminPassword"
+
+# Code to open the bash inside docker
+docker exec -it voyage_jenkins bash
+
+# another way to to generate the password in jenkins
+cat /var/jenkins_home/secrets/initialAdminPassword
+
+# Jenkins will be running on
+http://localhost:8081
+
