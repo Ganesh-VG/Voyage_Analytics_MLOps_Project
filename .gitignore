@@ -3,13 +3,21 @@ venv/
 
 # MLflow
 mlruns/
+mlflow/artifacts/
 
-# Jupyter
-.ipynb_checkpoints/
+# Airflow
+airflow/logs/
+airflow/config/
+airflow/plugins/
 
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
 
 # OS Files
 .DS_Store
@@ -17,3 +25,6 @@ Thumbs.db
 
 # Models
 models/*.pkl
+
+# Docker
+*.log
