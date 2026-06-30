@@ -63,22 +63,25 @@ pipeline {
                 while true
                 do
                     STATE=$(docker exec ${AIRFLOW_CONTAINER} \
-                    airflow dags list-runs -d ${DAG_ID} --no-backfill \
-                    | grep manual__ | head -1 | awk '{print $NF}')
+                    airflow dags list-runs -d ${DAG_ID} \
+                    | grep manual__ \
+                    | head -1 \
+                    | cut -d "|" -f3 \
+                    | xargs)
 
-                    echo "Current State : $STATE"
+                    echo "Current State : ${STATE}"
 
-                    if [ "$STATE" = "success" ]; then
+                    if [ "${STATE}" = "success" ]; then
                         echo "DAG completed successfully."
                         break
                     fi
 
-                    if [ "$STATE" = "failed" ]; then
+                    if [ "${STATE}" = "failed" ]; then
                         echo "DAG failed."
                         exit 1
                     fi
 
-                    sleep 15
+                    sleep 10
                 done
                 '''
             }
