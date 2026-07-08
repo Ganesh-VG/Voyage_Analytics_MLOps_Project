@@ -3,11 +3,8 @@ version: "3.8"
 services:
 
   jenkins:
-
     build: .
-
     container_name: voyage_jenkins
-
     restart: unless-stopped
 
     ports:
@@ -22,5 +19,4 @@ services:
       - ../:/workspace
 
 volumes:
-
   jenkins_home:

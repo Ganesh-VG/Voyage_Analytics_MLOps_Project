@@ -6,6 +6,7 @@ pipeline {
         AIRFLOW_CONTAINER = "airflow_scheduler"
         DAG_ID = "travel_pipeline"
         API_IMAGE = "voyage-api:latest"
+        API_CONTAINER = "voyage-api"
     }
 
     stages {
@@ -20,14 +21,24 @@ pipeline {
             steps {
                 sh '''
                 echo "===================================="
-                echo "Workspace"
+                echo "Workspace Information"
                 echo "===================================="
+
+                echo
+                echo "Jenkins Workspace"
                 pwd
+
+                echo
+                echo "Workspace Contents"
                 ls -la
 
                 echo
-                echo "Python Version"
-                python3 --version || true
+                echo "Shared Project (/workspace)"
+                ls -la /workspace
+
+                echo
+                echo "Models in /workspace/models"
+                ls -la /workspace/models || true
 
                 echo
                 echo "Docker Version"
@@ -47,36 +58,34 @@ pipeline {
                 echo "Triggering Airflow DAG..."
                 echo "===================================="
 
-                docker exec ${AIRFLOW_CONTAINER} \
-                airflow dags trigger ${DAG_ID}
+                docker exec ${AIRFLOW_CONTAINER} airflow dags trigger ${DAG_ID}
                 '''
             }
         }
 
-        stage('Wait For DAG Completion') {
+        stage('Wait For DAG Success') {
             steps {
                 sh '''
                 echo "===================================="
-                echo "Waiting for DAG Completion..."
+                echo "Waiting for Airflow DAG to complete..."
                 echo "===================================="
 
                 while true
                 do
-                    STATE=$(docker exec ${AIRFLOW_CONTAINER} \
-                    airflow dags list-runs -d ${DAG_ID} \
-                    | grep manual__ \
-                    | head -1 \
-                    | cut -d "|" -f3 \
-                    | xargs)
+                    STATE=$(docker exec ${AIRFLOW_CONTAINER} airflow dags list-runs -d ${DAG_ID} \
+                        | grep "manual__" \
+                        | head -1 \
+                        | cut -d "|" -f3 \
+                        | xargs)
 
-                    echo "Current State : ${STATE}"
+                    echo "Current DAG State: $STATE"
 
-                    if [ "${STATE}" = "success" ]; then
+                    if [ "$STATE" = "success" ]; then
                         echo "DAG completed successfully."
                         break
                     fi
 
-                    if [ "${STATE}" = "failed" ]; then
+                    if [ "$STATE" = "failed" ]; then
                         echo "DAG failed."
                         exit 1
                     fi
@@ -96,8 +105,43 @@ pipeline {
 
                 docker build \
                     -t ${API_IMAGE} \
-                    -f api/Dockerfile \
-                    .
+                    -f /workspace/api/Dockerfile \
+                    /workspace
+                '''
+            }
+        }
+
+        stage('Deploy API Container') {
+            steps {
+                sh '''
+                echo "===================================="
+                echo "Deploying Voyage API Container..."
+                echo "===================================="
+
+                docker rm -f ${API_CONTAINER} || true
+
+                docker run -d \
+                    --name ${API_CONTAINER} \
+                    -p 5000:5000 \
+                    ${API_IMAGE}
+                '''
+            }
+        }
+
+        stage('Verify API Container') {
+            steps {
+                sh '''
+                echo "===================================="
+                echo "Verifying Voyage API Container..."
+                echo "===================================="
+
+                sleep 10
+
+                docker ps
+
+                echo
+                echo "Voyage API Logs"
+                docker logs ${API_CONTAINER} || true
                 '''
             }
         }
@@ -107,19 +151,15 @@ pipeline {
     post {
 
         success {
-
             echo '===================================='
             echo 'Pipeline Completed Successfully!'
             echo '===================================='
-
         }
 
         failure {
-
             echo '===================================='
             echo 'Pipeline Failed!'
             echo '===================================='
-
         }
 
     }
