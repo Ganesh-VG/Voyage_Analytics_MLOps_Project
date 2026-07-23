@@ -28,6 +28,9 @@ docker run -p 5000:5000 voyage-analytics
 # Streamlit
 streamlit run streamlit_app/streamlit_app.py
 
+# Streamlit URL
+http://localhost:8501
+
 # Docker Stop
 docker stop voyage-api
 docker stop voyage_jenkins

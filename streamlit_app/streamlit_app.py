@@ -109,7 +109,7 @@ menu = st.sidebar.selectbox(
 #         }
 
 #         response = requests.post(
-#             "http://localhost:5000/predict_price",
+#             "http://localhost:8000/predict_price",
 #             json=payload
 #         )
 
@@ -231,7 +231,7 @@ if menu == "Flight Price Prediction":
             }
 
             response = requests.post(
-                "http://localhost:5000/predict_price",
+                "http://localhost:8000/predict_price",
                 json=payload
             )
 
@@ -336,7 +336,7 @@ elif menu == "Gender Classification":
         }
 
         response = requests.post(
-            "http://localhost:5000/predict_gender",
+            "http://localhost:8000/predict_gender",
             json=payload
         )
 
@@ -378,7 +378,7 @@ else:
         }
 
         response = requests.post(
-            "http://localhost:5000/recommend_hotel",
+            "http://localhost:8000/recommend_hotel",
             json=payload
         )
 

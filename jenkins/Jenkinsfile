@@ -3,10 +3,23 @@ pipeline {
     agent any
 
     environment {
-        AIRFLOW_CONTAINER = "airflow_scheduler"
+
+        AIRFLOW_URL = "http://localhost:8080/api/v1"
+
         DAG_ID = "travel_pipeline"
+
         API_IMAGE = "voyage-api:latest"
-        API_CONTAINER = "voyage-api"
+
+        K8S_NAMESPACE = "voyage-analytics"
+
+        K8S_DEPLOYMENT = "voyage-api"
+
+        K8S_SERVICE = "voyage-api-service"
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
     }
 
     stages {
@@ -20,33 +33,19 @@ pipeline {
         stage('Project Information') {
             steps {
                 sh '''
-                echo "===================================="
-                echo "Workspace Information"
-                echo "===================================="
+                echo "========================================="
+                echo "Voyage Analytics MLOps Pipeline"
+                echo "========================================="
+
+                echo "Workspace : $(pwd)"
+                echo "Branch    : ${BRANCH_NAME}"
+                echo "Build No  : ${BUILD_NUMBER}"
+                echo "Image     : ${API_IMAGE}"
 
                 echo
-                echo "Jenkins Workspace"
-                pwd
-
-                echo
-                echo "Workspace Contents"
-                ls -la
-
-                echo
-                echo "Shared Project (/workspace)"
-                ls -la /workspace
-
-                echo
-                echo "Models in /workspace/models"
-                ls -la /workspace/models || true
-
-                echo
-                echo "Docker Version"
                 docker --version
-
-                echo
-                echo "Running Containers"
-                docker ps
+                kubectl version --client
+                minikube version
                 '''
             }
         }
@@ -54,94 +53,128 @@ pipeline {
         stage('Trigger Airflow DAG') {
             steps {
                 sh '''
-                echo "===================================="
                 echo "Triggering Airflow DAG..."
-                echo "===================================="
 
-                docker exec ${AIRFLOW_CONTAINER} airflow dags trigger ${DAG_ID}
+                curl -X POST \
+                ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
+                -H "Content-Type: application/json" \
+                -u airflow:airflow \
+                -d '{}'
                 '''
             }
         }
 
-        stage('Wait For DAG Success') {
+        stage('Wait for DAG Completion') {
             steps {
-                sh '''
-                echo "===================================="
-                echo "Waiting for Airflow DAG to complete..."
-                echo "===================================="
 
-                while true
-                do
-                    STATE=$(docker exec ${AIRFLOW_CONTAINER} airflow dags list-runs -d ${DAG_ID} \
-                        | grep "manual__" \
-                        | head -1 \
-                        | cut -d "|" -f3 \
-                        | xargs)
+                script {
 
-                    echo "Current DAG State: $STATE"
+                    timeout(time: 30, unit: 'MINUTES') {
 
-                    if [ "$STATE" = "success" ]; then
-                        echo "DAG completed successfully."
-                        break
-                    fi
+                        waitUntil {
 
-                    if [ "$STATE" = "failed" ]; then
-                        echo "DAG failed."
-                        exit 1
-                    fi
+                            def status = sh(
+                                script: '''
+                                curl -s \
+                                -u airflow:airflow \
+                                ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
+                                | jq -r '.dag_runs[0].state'
+                                ''',
+                                returnStdout: true
+                            ).trim()
 
-                    sleep 10
-                done
-                '''
+                            echo "Current DAG State : ${status}"
+
+                            if(status == "success") {
+                                return true
+                            }
+
+                            if(status == "failed") {
+                                error("Airflow DAG Failed")
+                            }
+
+                            sleep 20
+
+                            return false
+                        }
+                    }
+                }
             }
         }
 
         stage('Build API Docker Image') {
             steps {
+
                 sh '''
-                echo "===================================="
-                echo "Building Voyage API Docker Image..."
-                echo "===================================="
+                echo "Building Docker Image..."
 
                 docker build \
                     -t ${API_IMAGE} \
-                    -f /workspace/api/Dockerfile \
-                    /workspace
+                    ./api
+
+                docker images | grep voyage-api
                 '''
             }
         }
 
-        stage('Deploy API Container') {
+        stage('Load Image into Minikube') {
+
             steps {
+
                 sh '''
-                echo "===================================="
-                echo "Deploying Voyage API Container..."
-                echo "===================================="
+                echo "Loading Image into Minikube..."
 
-                docker rm -f ${API_CONTAINER} || true
-
-                docker run -d \
-                    --name ${API_CONTAINER} \
-                    -p 5000:5000 \
-                    ${API_IMAGE}
+                minikube image load ${API_IMAGE}
                 '''
             }
         }
 
-        stage('Verify API Container') {
+        stage('Deploy to Kubernetes') {
+
             steps {
+
                 sh '''
-                echo "===================================="
-                echo "Verifying Voyage API Container..."
-                echo "===================================="
+                echo "Deploying Kubernetes Resources..."
 
-                sleep 10
+                kubectl apply -f kubernetes/
 
-                docker ps
+                kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+                -n ${K8S_NAMESPACE}
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+
+            steps {
+
+                sh '''
+                echo "Pods"
+
+                kubectl get pods \
+                -n ${K8S_NAMESPACE}
 
                 echo
-                echo "Voyage API Logs"
-                docker logs ${API_CONTAINER} || true
+
+                echo "Services"
+
+                kubectl get svc \
+                -n ${K8S_NAMESPACE}
+
+                echo
+
+                echo "Deployment"
+
+                kubectl get deployment \
+                -n ${K8S_NAMESPACE}
+
+                echo
+
+                echo "Application URL"
+
+                minikube service ${K8S_SERVICE} \
+                -n ${K8S_NAMESPACE} \
+                --url
                 '''
             }
         }
@@ -151,17 +184,18 @@ pipeline {
     post {
 
         success {
-            echo '===================================='
+
             echo 'Pipeline Completed Successfully!'
-            echo '===================================='
         }
 
         failure {
-            echo '===================================='
+
             echo 'Pipeline Failed!'
-            echo '===================================='
         }
 
-    }
+        always {
 
+            cleanWs()
+        }
+    }
 }
