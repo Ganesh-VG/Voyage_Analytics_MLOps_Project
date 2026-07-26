@@ -4,7 +4,7 @@ pipeline {
 
     environment {
 
-        AIRFLOW_URL = "http://localhost:8080/api/v1"
+        AIRFLOW_URL = "http://host.docker.internal:8080/api/v1"
 
         DAG_ID = "travel_pipeline"
 
@@ -31,11 +31,14 @@ pipeline {
         }
 
         stage('Project Information') {
+
             steps {
+
                 sh '''
-                echo "========================================="
+
+                echo "=========================================="
                 echo "Voyage Analytics MLOps Pipeline"
-                echo "========================================="
+                echo "=========================================="
 
                 echo "Workspace : $(pwd)"
                 echo "Branch    : ${BRANCH_NAME}"
@@ -44,27 +47,56 @@ pipeline {
 
                 echo
                 docker --version
+                git --version
+                curl --version | head -1
+                jq --version
                 kubectl version --client
                 minikube version
+
+                '''
+            }
+        }
+
+        stage('Verify Kubernetes') {
+
+            steps {
+
+                sh '''
+
+                echo "Current Context"
+
+                kubectl config current-context
+
+                echo
+
+                echo "Cluster Nodes"
+
+                kubectl get nodes
+
                 '''
             }
         }
 
         stage('Trigger Airflow DAG') {
+
             steps {
+
                 sh '''
+
                 echo "Triggering Airflow DAG..."
 
                 curl -X POST \
                 ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
                 -H "Content-Type: application/json" \
-                -u airflow:airflow \
+                -u admin:admin \
                 -d '{}'
+
                 '''
             }
         }
 
         stage('Wait for DAG Completion') {
+
             steps {
 
                 script {
@@ -74,23 +106,32 @@ pipeline {
                         waitUntil {
 
                             def status = sh(
+
                                 script: '''
+
                                 curl -s \
-                                -u airflow:airflow \
+                                -u admin:admin \
                                 ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
                                 | jq -r '.dag_runs[0].state'
+
                                 ''',
+
                                 returnStdout: true
+
                             ).trim()
 
                             echo "Current DAG State : ${status}"
 
                             if(status == "success") {
+
                                 return true
+
                             }
 
                             if(status == "failed") {
+
                                 error("Airflow DAG Failed")
+
                             }
 
                             sleep 20
@@ -102,29 +143,20 @@ pipeline {
             }
         }
 
-        stage('Build API Docker Image') {
+        stage('Build Voyage API Image') {
+
             steps {
 
                 sh '''
+
                 echo "Building Docker Image..."
 
                 docker build \
-                    -t ${API_IMAGE} \
-                    ./api
+                -t ${API_IMAGE} \
+                .
 
                 docker images | grep voyage-api
-                '''
-            }
-        }
 
-        stage('Load Image into Minikube') {
-
-            steps {
-
-                sh '''
-                echo "Loading Image into Minikube..."
-
-                minikube image load ${API_IMAGE}
                 '''
             }
         }
@@ -134,12 +166,14 @@ pipeline {
             steps {
 
                 sh '''
+
                 echo "Deploying Kubernetes Resources..."
 
                 kubectl apply -f kubernetes/
 
                 kubectl rollout status deployment/${K8S_DEPLOYMENT} \
                 -n ${K8S_NAMESPACE}
+
                 '''
             }
         }
@@ -149,6 +183,7 @@ pipeline {
             steps {
 
                 sh '''
+
                 echo "Pods"
 
                 kubectl get pods \
@@ -163,18 +198,11 @@ pipeline {
 
                 echo
 
-                echo "Deployment"
+                echo "Deployments"
 
                 kubectl get deployment \
                 -n ${K8S_NAMESPACE}
 
-                echo
-
-                echo "Application URL"
-
-                minikube service ${K8S_SERVICE} \
-                -n ${K8S_NAMESPACE} \
-                --url
                 '''
             }
         }
@@ -185,17 +213,21 @@ pipeline {
 
         success {
 
-            echo 'Pipeline Completed Successfully!'
+            echo "Pipeline Completed Successfully!"
+
         }
 
         failure {
 
-            echo 'Pipeline Failed!'
+            echo "Pipeline Failed!"
+
         }
 
         always {
 
             cleanWs()
+
         }
     }
+
 }

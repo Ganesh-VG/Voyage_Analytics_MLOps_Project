@@ -3,20 +3,38 @@ version: "3.8"
 services:
 
   jenkins:
+
     build: .
+
     container_name: voyage_jenkins
+
     restart: unless-stopped
+
+    user: root
 
     ports:
       - "8081:8080"
       - "50000:50000"
 
-    user: root
+    working_dir: /workspace
 
     volumes:
+
+      # Jenkins data
       - jenkins_home:/var/jenkins_home
+
+      # Docker socket
       - /var/run/docker.sock:/var/run/docker.sock
+
+      # Project workspace
       - ../:/workspace
 
+      # Linux kubeconfig (project-local)
+      - ./kube:/root/.kube
+
+      # Minikube certificates and profile
+      - C:/Users/Ganesh/.minikube:/root/.minikube
+
 volumes:
+
   jenkins_home:
