@@ -154,11 +154,14 @@ pipeline {
 
                 sh '''
 
-                echo "Building Docker Image..."
+                echo "====================================="
+                echo "Building Voyage API Docker Image"
+                echo "====================================="
 
                 docker build \
+                    -f api/Dockerfile \
                     -t ${API_IMAGE} \
-                    ./api
+                    .
 
                 echo
                 docker images | grep voyage-api
