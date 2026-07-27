@@ -77,23 +77,6 @@ pipeline {
         //     }
         // }
 
-        // stage('Trigger Airflow DAG') {
-
-        //     steps {
-
-        //         sh '''
-
-        //         echo "Triggering Airflow DAG..."
-
-        //         curl -X POST \
-        //         ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
-        //         -H "Content-Type: application/json" \
-        //         -u admin:admin \
-        //         -d '{}'
-
-        //         '''
-        //     }
-        // }
 
         stage('Trigger Airflow DAG') {
 
@@ -135,14 +118,12 @@ pipeline {
 
                             def status = sh(
 
-                                script: '''
-
+                                script: """
                                 curl -s \
                                 -u admin:admin \
-                                ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
-                                | jq -r '.dag_runs[0].state'
-
-                                ''',
+                                ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns/${env.DAG_RUN_ID} \
+                                | jq -r '.state'
+                                """,
 
                                 returnStdout: true
 
@@ -150,16 +131,12 @@ pipeline {
 
                             echo "Current DAG State : ${status}"
 
-                            if(status == "success") {
-
+                            if (status == "success") {
                                 return true
-
                             }
 
-                            if(status == "failed") {
-
+                            if (status == "failed") {
                                 error("Airflow DAG Failed")
-
                             }
 
                             sleep 20
