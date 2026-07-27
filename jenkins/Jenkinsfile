@@ -99,20 +99,26 @@ pipeline {
 
             steps {
 
-                sh '''
+                script {
 
-                echo "====================================="
-                echo "Triggering Airflow DAG..."
-                echo "====================================="
+                    env.DAG_RUN_ID = sh(
 
-                curl -v \
-                -u admin:admin \
-                -H "Content-Type: application/json" \
-                -X POST \
-                ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
-                -d '{}'
+                        script: '''
+                        curl -s \
+                        -u admin:admin \
+                        -H "Content-Type: application/json" \
+                        -X POST \
+                        ${AIRFLOW_URL}/dags/${DAG_ID}/dagRuns \
+                        -d '{}' \
+                        | jq -r '.dag_run_id'
+                        ''',
 
-                '''
+                        returnStdout: true
+
+                    ).trim()
+
+                    echo "Triggered DAG Run ID: ${env.DAG_RUN_ID}"
+                }
             }
         }
 
