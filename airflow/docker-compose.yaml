@@ -102,6 +102,8 @@ services:
 
       PROJECT_ROOT: /opt/airflow
 
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.session,airflow.api.auth.backend.basic_auth
+
     volumes:
 
       - ./dags:/opt/airflow/dags
@@ -144,6 +146,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
       PROJECT_ROOT: /opt/airflow
+
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.session,airflow.api.auth.backend.basic_auth
 
     volumes:
 
