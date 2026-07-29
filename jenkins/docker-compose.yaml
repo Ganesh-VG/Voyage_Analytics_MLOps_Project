@@ -26,8 +26,8 @@ services:
       # Docker socket
       - /var/run/docker.sock:/var/run/docker.sock
 
-      # Project workspace
-      - ../:/workspace
+      # Jenkins CI/CD Workspace
+      - C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps:/workspace
 
       # Linux kubeconfig (project-local)
       - ./kube:/root/.kube

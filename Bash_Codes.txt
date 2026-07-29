@@ -73,3 +73,116 @@ docker exec -it voyage_jenkins bash
 
 # another way to to generate the password in jenkins
 cat /var/jenkins_home/secrets/initialAdminPassword
+
+
+
+
+
+
+
+# 1. Restart Jenkins
+
+Navigate to your Jenkins folder:
+
+```bash
+cd /c/Projects/Github/Voyage_Analytics_MLOps_Project/jenkins
+```
+
+Stop the container:
+
+```bash
+docker compose down
+```
+
+Rebuild and start Jenkins:
+
+```bash
+docker compose up --build -d
+```
+
+Verify it's running:
+
+```bash
+docker ps
+```
+
+You should see:
+
+```
+voyage_jenkins
+```
+
+---
+
+# 2. Restart Airflow
+
+Navigate to the Airflow folder:
+
+```bash
+cd /c/Projects/Github/Voyage_Analytics_MLOps_Project/airflow
+```
+
+Stop Airflow:
+
+```bash
+docker compose down
+```
+
+Rebuild and start Airflow:
+
+```bash
+docker compose up --build -d
+```
+
+Verify:
+
+```bash
+docker ps
+```
+
+You should see:
+
+```
+airflow_webserver
+airflow_scheduler
+airflow_postgres
+```
+
+---
+
+# 3. Verify Airflow is healthy
+
+Run:
+
+```bash
+docker logs airflow_scheduler --tail=30
+```
+
+You should not see any Python exceptions.
+
+Then check the webserver:
+
+```bash
+docker logs airflow_webserver --tail=30
+```
+
+---
+
+# 4. Verify the shared workspace is mounted
+
+Run:
+
+```bash
+docker exec -it voyage_jenkins bash
+```
+
+Inside the container:
+
+```bash
+ls -la /workspace
+```
+
+
+
+
+

@@ -30,6 +30,38 @@ pipeline {
             }
         }
 
+        stage('Sync Repository to Shared Workspace') {
+
+            steps {
+
+                sh '''
+
+                echo "=========================================="
+                echo "Synchronizing Repository"
+                echo "=========================================="
+
+                echo "Jenkins Workspace : $WORKSPACE"
+
+                mkdir -p /workspace
+
+                echo "Cleaning Shared Workspace..."
+
+                rm -rf /workspace/*
+
+                echo "Copying Repository..."
+
+                cp -a "$WORKSPACE"/. /workspace/
+
+                echo
+                echo "Shared Workspace Contents"
+
+                ls -la /workspace
+
+                '''
+
+            }
+        }
+
         stage('Project Information') {
 
             steps {
@@ -152,22 +184,32 @@ pipeline {
 
             steps {
 
-                sh '''
+                dir('/workspace') {
 
-                echo "====================================="
-                echo "Building Voyage API Docker Image"
-                echo "====================================="
+                    sh '''
 
-                docker build \
-                    -f api/Dockerfile \
-                    -t ${API_IMAGE} \
-                    .
+                    echo "====================================="
+                    echo "Building Voyage API Docker Image"
+                    echo "====================================="
 
-                echo
-                docker images | grep voyage-api
+                    pwd
 
-                '''
+                    ls
+
+                    docker build \
+                        -f api/Dockerfile \
+                        -t ${API_IMAGE} \
+                        .
+
+                    echo
+                    docker images | grep voyage-api
+
+                    '''
+
+                }
+
             }
+
         }
 
         // stage('Deploy to Kubernetes') {

@@ -39,7 +39,7 @@ services:
 
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
-      PROJECT_ROOT: /opt/airflow
+      PROJECT_ROOT: /workspace
 
       _AIRFLOW_WWW_USER_USERNAME: admin
 
@@ -60,20 +60,12 @@ services:
     volumes:
 
       - ./dags:/opt/airflow/dags
-
       - ./logs:/opt/airflow/logs
-
       - ./plugins:/opt/airflow/plugins
-
       - ./config:/opt/airflow/config
 
-      - ../src:/opt/airflow/src
-
-      - ../models:/opt/airflow/models
-
-      - ../data:/opt/airflow/data
-
-      - ../mlflow:/opt/airflow/mlflow
+      # Shared project workspace
+      - C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps:/workspace
 
 
   airflow-webserver:
@@ -100,27 +92,19 @@ services:
 
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
-      PROJECT_ROOT: /opt/airflow
+      PROJECT_ROOT: /workspace
 
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.session,airflow.api.auth.backend.basic_auth
 
     volumes:
 
       - ./dags:/opt/airflow/dags
-
       - ./logs:/opt/airflow/logs
-
       - ./plugins:/opt/airflow/plugins
-
       - ./config:/opt/airflow/config
 
-      - ../src:/opt/airflow/src
-
-      - ../models:/opt/airflow/models
-
-      - ../data:/opt/airflow/data
-
-      - ../mlflow:/opt/airflow/mlflow
+      # Shared project workspace
+      - C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps:/workspace
 
     restart: always
 
@@ -145,27 +129,19 @@ services:
 
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
-      PROJECT_ROOT: /opt/airflow
+      PROJECT_ROOT: /workspace
 
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.session,airflow.api.auth.backend.basic_auth
 
     volumes:
 
       - ./dags:/opt/airflow/dags
-
       - ./logs:/opt/airflow/logs
-
       - ./plugins:/opt/airflow/plugins
-
       - ./config:/opt/airflow/config
 
-      - ../src:/opt/airflow/src
-
-      - ../models:/opt/airflow/models
-
-      - ../data:/opt/airflow/data
-
-      - ../mlflow:/opt/airflow/mlflow
+      # Shared project workspace
+      - C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps:/workspace
 
     restart: always
 

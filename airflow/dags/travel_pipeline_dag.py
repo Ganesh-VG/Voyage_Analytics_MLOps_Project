@@ -12,7 +12,7 @@ import sys
 # Project Root (Docker Container)
 # ==================================================
 
-PROJECT_ROOT = "/opt/airflow"
+PROJECT_ROOT = "/workspace"
 
 
 # ==================================================
