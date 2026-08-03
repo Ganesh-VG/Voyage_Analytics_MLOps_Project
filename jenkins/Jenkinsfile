@@ -213,23 +213,11 @@ pipeline {
         }
 
         stage('Load Image into Minikube') {
-
             steps {
-
                 sh '''
-
-                echo "====================================="
-                echo "Loading Image into Minikube"
-                echo "====================================="
-
-                minikube image load ${API_IMAGE}
-
-                minikube image ls | grep voyage-api
-
+                docker save ${API_IMAGE} | docker exec -i minikube docker load
                 '''
-
             }
-
         }
 
         stage('Deploy to Kubernetes') {
