@@ -296,9 +296,17 @@ def train_gender_classifier():
 
     rf_model = RandomForestClassifier(
 
-        n_estimators=200,
+        n_estimators=100,
 
-        random_state=42
+        max_depth=20,
+
+        min_samples_split=10,
+
+        min_samples_leaf=5,
+
+        random_state=42,
+
+        n_jobs=-1
 
     )
 
@@ -417,6 +425,30 @@ def train_gender_classifier():
             "gender_classifier.pkl"
 
         )
+
+    )
+
+    model_path = os.path.join(
+
+    MODELS_DIR,
+
+    "gender_classifier.pkl"
+
+    )
+
+    joblib.dump(
+
+        rf_model,
+
+        model_path,
+
+        compress=3
+
+    )
+
+    print(
+
+        f"Model Size : {os.path.getsize(model_path) / (1024 * 1024):.2f} MB"
 
     )
 
