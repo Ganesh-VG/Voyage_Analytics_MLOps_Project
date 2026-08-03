@@ -212,21 +212,54 @@ pipeline {
 
         }
 
+        stage('Load Image into Minikube') {
+
+            steps {
+
+                sh '''
+
+                echo "====================================="
+                echo "Loading Image into Minikube"
+                echo "====================================="
+
+                minikube image load ${API_IMAGE}
+
+                minikube image ls | grep voyage-api
+
+                '''
+
+            }
+
+        }
+
         stage('Deploy to Kubernetes') {
 
             steps {
 
                 sh '''
 
-                echo "Deploying Kubernetes Resources..."
+                echo "====================================="
+                echo "Deploying Kubernetes Resources"
+                echo "====================================="
 
                 kubectl apply -f kubernetes/
+
+                echo
+                echo "Restarting Deployment..."
+
+                kubectl rollout restart deployment/${K8S_DEPLOYMENT} \
+                -n ${K8S_NAMESPACE}
+
+                echo
+                echo "Waiting for Rollout..."
 
                 kubectl rollout status deployment/${K8S_DEPLOYMENT} \
                 -n ${K8S_NAMESPACE}
 
                 '''
+
             }
+
         }
 
         stage('Verify Deployment') {
