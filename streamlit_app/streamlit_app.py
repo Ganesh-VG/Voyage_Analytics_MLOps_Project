@@ -1,6 +1,16 @@
 import streamlit as st
 import pandas as pd
 import requests
+import os
+
+
+# Configure this value for Kubernetes without changing application code.
+# Example outside Minikube: http://<minikube-ip>:30080
+# Example inside the cluster: http://voyage-api-service.voyage-analytics.svc.cluster.local:8000
+API_BASE_URL = os.getenv(
+    "VOYAGE_API_BASE_URL",
+    "http://localhost:8000"
+).rstrip("/")
 
 flight_df = pd.read_csv(
     "./data/processed/flight_user.csv"
@@ -13,6 +23,10 @@ st.set_page_config(
 )
 
 st.title("✈️ Voyage Analytics MLOps Project")
+
+st.caption(
+    f"API endpoint: {API_BASE_URL}"
+)
 
 menu = st.sidebar.selectbox(
     "Select Module",
@@ -231,8 +245,9 @@ if menu == "Flight Price Prediction":
             }
 
             response = requests.post(
-                "http://localhost:8000/predict_price",
-                json=payload
+                f"{API_BASE_URL}/predict_price",
+                json=payload,
+                timeout=15
             )
 
             if response.status_code == 200:
@@ -336,8 +351,9 @@ elif menu == "Gender Classification":
         }
 
         response = requests.post(
-            "http://localhost:8000/predict_gender",
-            json=payload
+            f"{API_BASE_URL}/predict_gender",
+            json=payload,
+            timeout=15
         )
 
         st.success(
@@ -378,8 +394,9 @@ else:
         }
 
         response = requests.post(
-            "http://localhost:8000/recommend_hotel",
-            json=payload
+            f"{API_BASE_URL}/recommend_hotel",
+            json=payload,
+            timeout=15
         )
 
         result = pd.DataFrame(
