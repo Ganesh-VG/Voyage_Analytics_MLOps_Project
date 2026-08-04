@@ -1,0 +1,20 @@
+artifact_path: flight_price_model
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.11
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.9.0
+mlflow_version: 2.17.2
+model_size_bytes: 14908045
+model_uuid: 3144ec62f7964f05b4b70261232b423c
+run_id: d75cb2fb90d3491792f36225f3d44f8c
+utc_time_created: '2026-07-02 08:22:15.972784'

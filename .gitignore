@@ -3,8 +3,6 @@ venv/
 
 # MLflow
 mlruns/
-mlflow/
-!mlflow/README.md
 
 # Airflow
 airflow/logs/
