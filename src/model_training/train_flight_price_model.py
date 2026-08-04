@@ -106,13 +106,23 @@ MLFLOW_DB = os.path.join(
 
 )
 
-# ==========================================
-# MLflow Configuration
-# ==========================================
-
-mlflow.set_tracking_uri(
-    f"sqlite:///{MLFLOW_DB}"
+# Use the shared MLflow service in Docker, while keeping a local SQLite
+# fallback for standalone training outside the platform stack.
+MLFLOW_TRACKING_URI = os.environ.get(
+    "MLFLOW_TRACKING_URI"
 )
+
+if MLFLOW_TRACKING_URI:
+
+    mlflow.set_tracking_uri(
+        MLFLOW_TRACKING_URI
+    )
+
+else:
+
+    mlflow.set_tracking_uri(
+        f"sqlite:///{MLFLOW_DB}"
+    )
 
 EXPERIMENT_NAME = "Flight Price Prediction"
 
@@ -132,9 +142,20 @@ experiment = mlflow.get_experiment_by_name(
 
 if experiment is None:
 
+    experiment_kwargs = {
+        "name": EXPERIMENT_NAME
+    }
+
+    # Let the MLflow server manage artifacts for remote tracking. A local
+    # standalone run continues to store them in this repository's mlflow/ folder.
+    if not MLFLOW_TRACKING_URI:
+
+        experiment_kwargs[
+            "artifact_location"
+        ] = f"file://{ARTIFACT_DIR}"
+
     mlflow.create_experiment(
-        name=EXPERIMENT_NAME,
-        artifact_location=f"file://{ARTIFACT_DIR}"
+        **experiment_kwargs
     )
 
 mlflow.set_experiment(

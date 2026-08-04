@@ -23,6 +23,46 @@ services:
       - postgres-db-volume:/var/lib/postgresql/data
 
 
+  mlflow:
+
+    build: .
+
+    container_name: voyage_mlflow
+
+    user: root
+
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        if [ ! -f /mlflow/mlflow.db ] && [ -f /seed/mlflow.db ]; then
+          cp -a /seed/. /mlflow/
+        fi
+        mkdir -p /mlflow/artifacts
+        exec mlflow server \
+          --backend-store-uri sqlite:////mlflow/mlflow.db \
+          --artifacts-destination file:///mlflow/artifacts \
+          --host 0.0.0.0 \
+          --port 5000
+
+    ports:
+
+      - "5000:5000"
+
+    volumes:
+
+      # Persistent MLflow tracking database and artifacts.
+      - mlflow-data:/mlflow
+
+      # Makes artifacts from the project's earlier Airflow-based runs readable.
+      - mlflow-data:/opt/airflow/mlflow
+
+      # One-time seed source for existing local MLflow history, if present.
+      - ../mlflow:/seed:ro
+
+    restart: always
+
+
   airflow-init:
 
     build: .
@@ -84,6 +124,10 @@ services:
 
         condition: service_completed_successfully
 
+      mlflow:
+
+        condition: service_started
+
     ports:
 
       - "8080:8080"
@@ -97,6 +141,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
       PROJECT_ROOT: /workspace
+
+      MLFLOW_TRACKING_URI: http://mlflow:5000
 
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.session,airflow.api.auth.backend.basic_auth
 
@@ -127,6 +173,10 @@ services:
 
         condition: service_completed_successfully
 
+      mlflow:
+
+        condition: service_started
+
     command: scheduler
 
     environment:
@@ -136,6 +186,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
 
       PROJECT_ROOT: /workspace
+
+      MLFLOW_TRACKING_URI: http://mlflow:5000
 
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.session,airflow.api.auth.backend.basic_auth
 
@@ -155,3 +207,5 @@ services:
 volumes:
 
   postgres-db-volume:
+
+  mlflow-data:

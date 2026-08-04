@@ -12,16 +12,31 @@ Voyage Analytics is an end-to-end machine-learning operations project for travel
 
 ## Architecture
 
+The project has three simple stages:
+
+1. **Build the models** - raw travel data is cleaned and used to train the prediction and recommendation models. MLflow records the training runs.
+2. **Deploy the application** - Jenkins starts the Airflow training workflow, builds the API and frontend Docker images, then deploys them to Kubernetes.
+3. **Use the application** - a user opens Streamlit in a browser; Streamlit sends requests to the Flask API, and the API uses the trained models to return results.
+
 ```text
-Raw CSV data -> preprocessing -> model training and validation -> model artifacts
-                                      ^
-                                      | Airflow orchestrates the ML workflow
+Raw travel data
+      |
+      v
+Python preprocessing and training
+      |
+      v
+Trained models + MLflow experiment records
 
-Jenkins builds and deploys both application images:
-
-Browser -> Streamlit Service -> Streamlit Pod -> voyage-api-service -> API Pods
-                                                    (2 to 5 replicas)
+Jenkins + Airflow automate training and deployment
+      |
+      v
+Kubernetes runs the Streamlit frontend and Flask API
+      |
+      v
+Browser -> Streamlit frontend -> Flask API -> trained models
 ```
+
+The API normally runs with two replicas and can scale up to five when CPU usage increases.
 
 ## Repository layout
 
@@ -39,9 +54,9 @@ Browser -> Streamlit Service -> Streamlit Pod -> voyage-api-service -> API Pods
 | `airflow/` | Airflow image, Docker Compose setup, and ML workflow DAG. |
 | `jenkins/` | Custom Jenkins image, plugins, Compose setup, and CI/CD pipeline. |
 | `kubernetes/` | API and frontend ConfigMaps, Deployments, Services, and API HPA manifests. |
-| `mlflow/` | Local MLflow SQLite tracking database and run artifacts. |
+| `mlflow/` | Seed and local-fallback MLflow files. The active Docker MLflow service keeps its persistent data in a named Docker volume. |
 
-## Requirements for a fresh clone
+## Requirements
 
 This project is documented for Git Bash on Windows with Docker Desktop and Minikube. The ML/API portion can run on Windows, macOS, or Linux; adapt shell commands and any host-volume paths for your operating system.
 
@@ -52,14 +67,7 @@ This project is documented for Git Bash on Windows with Docker Desktop and Minik
 - `pip` and `venv`
 - At least 8 GB RAM recommended, as the included datasets and Random Forest models are sizeable
 
-Install the Python dependencies after cloning:
-
-```bash
-python -m venv venv
-source venv/Scripts/activate
-python -m pip install --upgrade pip
-pip install Flask pandas numpy scikit-learn scipy xgboost joblib mlflow matplotlib seaborn streamlit
-```
+The installation commands are in [First-time setup from a fresh clone](#first-time-setup-from-a-fresh-clone), so the full-project startup flow has one authoritative setup sequence.
 
 The root `requirements.txt` also lists `apache-airflow`, but Airflow is run by this project inside its Docker image. Do not install Airflow directly in a Windows virtual environment; use the Compose setup in `airflow/` instead.
 
@@ -82,29 +90,6 @@ minikube version
 kubectl version --client
 ```
 
-Start the local cluster before deploying:
-
-```bash
-minikube start
-kubectl config current-context
-```
-
-The expected Kubernetes context is `minikube`.
-
-### Clone and configure
-
-```bash
-git clone <repository-url>
-cd Voyage_Analytics_MLOps_Project
-```
-
-Before starting Airflow or Jenkins, update these host-specific bind mounts in their Compose files to point to your own shared workspace:
-
-- `airflow/docker-compose.yaml`
-- `jenkins/docker-compose.yaml`
-
-Both files currently reference `C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps`. Create that directory or replace the path consistently in both files. Jenkins copies the checked-out project there, and Airflow accesses it at `/workspace` to run the training scripts.
-
 ## End-to-end workflow
 
 1. `preprocessing.py` reads the raw CSV files, removes duplicates, derives date features, and joins flight/hotel data with user data.
@@ -118,15 +103,7 @@ Both files currently reference `C:/Projects/JenkinsWorkspace/Voyage_Analytics_ML
 
 ## Quick start: train locally
 
-Create and activate a Python virtual environment, then install project dependencies:
-
-```bash
-python -m venv venv
-source venv/Scripts/activate
-pip install Flask pandas numpy scikit-learn scipy xgboost joblib mlflow matplotlib seaborn streamlit
-```
-
-Run preprocessing, training, and validation from the repository root:
+After completing [First-time setup from a fresh clone](#first-time-setup-from-a-fresh-clone), run preprocessing, training, and validation from the repository root:
 
 ```bash
 python src/preprocessing/preprocessing.py
@@ -162,46 +139,6 @@ Test the API health endpoint:
 ```bash
 curl http://localhost:8000/
 ```
-
-## Airflow orchestration
-
-Start Airflow from its folder:
-
-```bash
-cd airflow
-docker compose up --build -d
-```
-
-Open Airflow at `http://localhost:8080`, then trigger the `travel_pipeline` DAG. See [airflow/README.md](airflow/README.md) for service details and the workspace setup.
-
-## Kubernetes deployment
-
-With Docker, Minikube, and `kubectl` configured:
-
-```bash
-docker build -f api/Dockerfile -t voyage-api:latest .
-docker build -f streamlit_app/Dockerfile -t voyage-streamlit:latest .
-minikube image load --overwrite voyage-api:latest
-minikube image load --overwrite voyage-streamlit:latest
-kubectl apply -f kubernetes/
-kubectl rollout restart deployment/voyage-api -n voyage-analytics
-kubectl rollout restart deployment/voyage-streamlit -n voyage-analytics
-kubectl rollout status deployment/voyage-api -n voyage-analytics
-kubectl rollout status deployment/voyage-streamlit -n voyage-analytics
-```
-
-The frontend is exposed by `voyage-streamlit-service`. For Minikube on Windows, run `minikube service voyage-streamlit-service -n voyage-analytics` to open it. See [kubernetes/README.md](kubernetes/README.md) for verification and cleanup commands.
-
-## Jenkins CI/CD
-
-Start Jenkins from its folder:
-
-```bash
-cd jenkins
-docker compose up --build -d
-```
-
-Jenkins is available at `http://localhost:8081`. Configure a Pipeline job to use `jenkins/Jenkinsfile`. It triggers Airflow, builds and loads both application images, deploys Kubernetes resources, and verifies both rollouts. See [jenkins/README.md](jenkins/README.md) for the complete setup.
 
 ## Start the complete project
 
@@ -248,7 +185,9 @@ docker compose -f airflow/docker-compose.yaml up --build -d
 docker compose -f airflow/docker-compose.yaml ps
 ```
 
-Open Airflow at `http://localhost:8080`.
+Open Airflow at `http://localhost:8080` and MLflow at `http://localhost:5000`.
+
+MLflow starts with the Airflow Compose stack. After the flight-price training task completes, open the **Flight Price Prediction** experiment in MLflow to compare parameters, metrics, and logged artifacts. See the [MLflow guide](mlflow/README.md) for local-training and data-retention details.
 
 ### 3. Start Jenkins
 
@@ -301,7 +240,7 @@ docker compose -f jenkins/docker-compose.yaml down
 minikube stop
 ```
 
-These commands preserve Docker volumes, Airflow metadata, Jenkins configuration, and Kubernetes resources. The next `minikube start` resumes the cluster and its deployed resources.
+These commands preserve Docker volumes, including Airflow metadata, MLflow tracking data, Jenkins configuration, and Kubernetes resources. The next `minikube start` resumes the cluster and its deployed resources.
 
 ### Optional full project cleanup
 
@@ -324,7 +263,7 @@ Finally remove the locally built Voyage images:
 
 ```bash
 docker image rm voyage-api:latest voyage-streamlit:latest
-docker image rm airflow-airflow-webserver:latest airflow-airflow-scheduler:latest airflow-airflow-init:latest
+docker image rm airflow-airflow-webserver:latest airflow-airflow-scheduler:latest airflow-airflow-init:latest airflow-mlflow:latest
 docker image rm jenkins-jenkins:latest
 ```
 
@@ -336,6 +275,7 @@ Docker may report that an image does not exist or is still used by another conta
 - [Airflow guide](airflow/README.md)
 - [Jenkins guide](jenkins/README.md)
 - [Kubernetes guide](kubernetes/README.md)
+- [MLflow tracking guide](mlflow/README.md)
 - [Streamlit frontend guide](streamlit_app/README.md)
 
 ## Local-development notes
