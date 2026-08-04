@@ -109,7 +109,7 @@ with DAG(
         1
     ),
 
-    schedule="@daily",
+    schedule=None,
 
     catchup=False,
 
