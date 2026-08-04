@@ -1,20 +1,23 @@
 # Voyage Analytics Kubernetes Deployment
 
-This folder contains the Kubernetes manifests used to deploy the Voyage Analytics Flask API to a Minikube cluster.
+This folder contains the Kubernetes manifests used to deploy the Voyage Analytics Flask API and Streamlit frontend to a Minikube cluster.
 
 ## Architecture
 
 ```text
-Client
+Browser
   |
   v
-NodePort Service (port 30080)
+Streamlit Service (NodePort 30081)
+  |
+  v
+Streamlit Pod (port 8501)
+  |
+  v
+Voyage API Service
   |
   v
 Voyage API Pods (2 to 5 replicas, port 8000)
-  |
-  +-- ConfigMap environment variables
-  +-- Readiness and liveness checks
 ```
 
 ## Manifest files
@@ -26,32 +29,39 @@ Voyage API Pods (2 to 5 replicas, port 8000)
 | `deployment.yaml` | Runs the `voyage-api` container, keeps two replicas available, and defines resource limits and health probes. |
 | `service.yaml` | Creates a stable NodePort endpoint that forwards requests to the API Pods. |
 | `hpa.yaml` | Scales the API between two and five replicas when average CPU utilization exceeds 70%. |
+| `streamlit-configmap.yaml` | Gives the frontend the internal `voyage-api-service` URL. |
+| `streamlit-deployment.yaml` | Runs the `voyage-streamlit` frontend container. |
+| `streamlit-service.yaml` | Exposes the frontend through NodePort `30081`. |
 
 ## Prerequisites
 
 - Docker
 - Minikube running locally
 - `kubectl` configured to use the Minikube context
-- A locally built API image named `voyage-api:latest`
+- Locally built images named `voyage-api:latest` and `voyage-streamlit:latest`
 
 ## Deploy locally
 
-From the repository root, build the API image and load it into Minikube:
+From the repository root, build both application images and load them into Minikube:
 
-```powershell
+```bash
 docker build -f api/Dockerfile -t voyage-api:latest .
-minikube image load voyage-api:latest
+docker build -f streamlit_app/Dockerfile -t voyage-streamlit:latest .
+minikube image load --overwrite voyage-api:latest
+minikube image load --overwrite voyage-streamlit:latest
 ```
 
 Apply all manifests:
 
-```powershell
+```bash
 kubectl apply -f kubernetes/
+kubectl rollout restart deployment/voyage-api -n voyage-analytics
+kubectl rollout restart deployment/voyage-streamlit -n voyage-analytics
 ```
 
 ## Verify the deployment
 
-```powershell
+```bash
 kubectl get pods -n voyage-analytics
 kubectl get svc -n voyage-analytics
 kubectl get deployment -n voyage-analytics
@@ -60,18 +70,32 @@ kubectl get hpa -n voyage-analytics
 
 Wait for the API to become ready:
 
-```powershell
+```bash
 kubectl rollout status deployment/voyage-api -n voyage-analytics
+kubectl rollout status deployment/voyage-streamlit -n voyage-analytics
 ```
 
-## Access the API
+## Access the frontend and API
 
-The Service exposes the API on NodePort `30080`. Get the Minikube IP and call the health endpoint:
+For Minikube with the Docker driver on Windows, open the frontend through a Minikube Service tunnel:
 
-```powershell
-$minikubeIp = minikube ip
-Invoke-RestMethod "http://${minikubeIp}:30080/"
+```bash
+minikube service voyage-streamlit-service -n voyage-analytics
 ```
+
+In Git Bash, use the same command:
+
+```bash
+minikube service voyage-streamlit-service -n voyage-analytics
+```
+
+To call the API directly from the host, create a port-forward:
+
+```bash
+kubectl port-forward -n voyage-analytics service/voyage-api-service 8000:8000
+```
+
+Then call `http://localhost:8000/`.
 
 Expected response:
 
@@ -83,13 +107,13 @@ Expected response:
 
 ## Important notes
 
-- `imagePullPolicy: Never` means Minikube must already contain `voyage-api:latest`; Kubernetes will not pull it from an image registry.
-- The API listens on container port `8000`; the Service exposes it through NodePort `30080`.
+- `imagePullPolicy: Never` means Minikube must already contain both images; Kubernetes will not pull them from an image registry. Use `minikube image load --overwrite` when replacing an existing `latest` image.
+- The API listens on container port `8000`; the frontend listens on port `8501`.
 - The ConfigMap does not contain secrets. Use a Kubernetes `Secret` for passwords, keys, or tokens.
 - The Horizontal Pod Autoscaler needs Metrics Server to obtain CPU metrics. Minikube normally provides it, but it can be enabled with `minikube addons enable metrics-server` if needed.
 
 ## Remove the deployment
 
-```powershell
+```bash
 kubectl delete -f kubernetes/
 ```

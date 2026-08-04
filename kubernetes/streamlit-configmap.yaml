@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: voyage-streamlit-config
+  namespace: voyage-analytics
+
+data:
+  VOYAGE_API_BASE_URL: "http://voyage-api-service:8000"

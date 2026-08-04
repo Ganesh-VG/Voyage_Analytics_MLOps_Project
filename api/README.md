@@ -1,6 +1,6 @@
 # Voyage Analytics API
 
-This folder contains the Flask application that serves Voyage Analytics machine-learning capabilities as HTTP endpoints. The service loads trained artifacts from the repository-level `models/` directory.
+This folder contains the Flask application that serves Voyage Analytics machine-learning capabilities as HTTP endpoints. The service loads trained artifacts from the repository-level `models/` directory and is consumed by the Streamlit frontend through the Kubernetes `voyage-api-service`.
 
 ## Folder contents
 
@@ -34,15 +34,15 @@ Run the Airflow ML pipeline or the training scripts before starting a fresh API 
 
 From the repository root:
 
-```powershell
+```bash
 pip install -r api/requirements.txt
 python api/app.py
 ```
 
 The server listens on `http://localhost:8000` by default. Set `PORT` to use another port:
 
-```powershell
-$env:PORT = "8001"
+```bash
+export PORT=8001
 python api/app.py
 ```
 
@@ -50,13 +50,13 @@ python api/app.py
 
 Build the image from the repository root, so Docker can copy both `api/` and `models/`:
 
-```powershell
+```bash
 docker build -f api/Dockerfile -t voyage-api:latest .
 ```
 
 Run it locally:
 
-```powershell
+```bash
 docker run --rm -p 8000:8000 voyage-api:latest
 ```
 
@@ -161,13 +161,27 @@ The response is a JSON array of hotels in that destination, ranked from the prec
 
 With the API running locally:
 
-```powershell
-Invoke-RestMethod http://localhost:8000/
+```bash
+curl http://localhost:8000/
 ```
 
-## Deployment
+## Deployment and frontend integration
 
-Jenkins builds `voyage-api:latest`, loads it into Minikube, and applies the Kubernetes manifests from `../kubernetes/`. See [`../kubernetes/README.md`](../kubernetes/README.md) for deployment instructions.
+Jenkins builds `voyage-api:latest` alongside `voyage-streamlit:latest`, loads both images into Minikube, and applies the manifests in `../kubernetes/`.
+
+Within Kubernetes, the Streamlit frontend calls this API through:
+
+```text
+http://voyage-api-service:8000
+```
+
+The Service distributes requests across the available API Pods. To call the API directly from a host computer during local development:
+
+```bash
+kubectl port-forward -n voyage-analytics service/voyage-api-service 8000:8000
+```
+
+See [`../kubernetes/README.md`](../kubernetes/README.md) for deployment and frontend access instructions.
 
 ## Error responses
 

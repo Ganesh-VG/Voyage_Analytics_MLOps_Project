@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: voyage-streamlit
+  namespace: voyage-analytics
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: voyage-streamlit
+
+  template:
+    metadata:
+      labels:
+        app: voyage-streamlit
+
+    spec:
+      containers:
+      - name: voyage-streamlit
+        image: voyage-streamlit:latest
+        imagePullPolicy: Never
+
+        ports:
+        - containerPort: 8501
+
+        envFrom:
+        - configMapRef:
+            name: voyage-streamlit-config
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        readinessProbe:
+          tcpSocket:
+            port: 8501
+          initialDelaySeconds: 15
+          periodSeconds: 10
+
+        livenessProbe:
+          tcpSocket:
+            port: 8501
+          initialDelaySeconds: 30
+          periodSeconds: 15

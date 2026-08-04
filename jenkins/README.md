@@ -1,6 +1,6 @@
 # Voyage Analytics Jenkins CI/CD
 
-This folder configures Jenkins as the CI/CD controller for Voyage Analytics. Jenkins triggers the Airflow machine-learning pipeline, packages the validated API and model artifacts into a Docker image, and deploys that image to Minikube.
+This folder configures Jenkins as the CI/CD controller for Voyage Analytics. Jenkins triggers the Airflow machine-learning pipeline, packages the validated API/model artifacts and Streamlit frontend into separate Docker images, and deploys both images to Minikube.
 
 ## Pipeline overview
 
@@ -9,8 +9,8 @@ Repository checkout
   → copy source to shared workspace
   → trigger Airflow travel_pipeline DAG
   → wait for preprocessing, training, and validation
-  → build voyage-api:latest
-  → load image into Minikube
+  → build voyage-api:latest and voyage-streamlit:latest
+  → load both images into Minikube
   → apply Kubernetes manifests
   → verify the rollout
 ```
@@ -51,7 +51,7 @@ The pipeline definition is in [`Jenkinsfile`](Jenkinsfile).
 
 From this directory:
 
-```powershell
+```bash
 docker compose up --build -d
 ```
 
@@ -63,7 +63,7 @@ http://localhost:8081
 
 To retrieve the initial administrator password after first startup:
 
-```powershell
+```bash
 docker exec voyage_jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
@@ -78,23 +78,24 @@ docker exec voyage_jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 ## What the Jenkinsfile does
 
-The pipeline first checks out the selected source revision and copies it to `/workspace`. Airflow uses this shared workspace to run the preprocessing, training, and validation scripts.
+The pipeline first checks out the selected source revision and copies it to `/workspace`. Airflow uses this shared workspace to run preprocessing, training, and validation. The generated model artifacts and `data/processed/flight_user.csv` are then available for the API and frontend image builds.
 
 Jenkins calls the Airflow REST API to trigger the `travel_pipeline` DAG and polls it for up to 30 minutes. A failed DAG fails the Jenkins build; a successful DAG permits deployment to continue.
 
-Next, Jenkins builds the API image:
+Next, Jenkins builds the API and frontend images:
 
 ```text
 voyage-api:latest
+voyage-streamlit:latest
 ```
 
-It loads the image into Minikube and applies the manifests in `../kubernetes/`. It restarts `voyage-api`, waits for the rollout, and lists Pods, Services, and Deployments in the `voyage-analytics` namespace.
+It loads both images into Minikube and applies the manifests in `../kubernetes/`. It restarts `voyage-api` and `voyage-streamlit`, waits for both rollouts, and lists Pods, Services, and Deployments in the `voyage-analytics` namespace.
 
 ## Verify Jenkins access to Kubernetes
 
 Run this inside the Jenkins container:
 
-```powershell
+```bash
 docker exec voyage_jenkins kubectl get nodes
 docker exec voyage_jenkins kubectl get pods -n voyage-analytics
 ```
@@ -105,11 +106,11 @@ docker exec voyage_jenkins kubectl get pods -n voyage-analytics
 - The Docker socket mount gives Jenkins significant access to the host Docker daemon. This is convenient for local development but should be carefully controlled in production.
 - `kube/config` references Minikube client certificates and keys. Treat it as sensitive configuration; avoid committing real cluster credentials to a public repository.
 - `kube/cache/` is generated data and is normally appropriate for `.gitignore`.
-- The Pipeline expects the Kubernetes deployment to use the locally loaded `voyage-api:latest` image. The current deployment uses `imagePullPolicy: Never`, so Minikube must contain that image before rollout.
+- The Pipeline expects locally loaded `voyage-api:latest` and `voyage-streamlit:latest` images. Both deployments use `imagePullPolicy: Never`, so Minikube must contain both images before rollout.
 
 ## Stop Jenkins
 
-```powershell
+```bash
 docker compose down
 ```
 

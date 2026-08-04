@@ -1,6 +1,6 @@
 # Voyage Analytics Airflow Pipeline
 
-This folder configures Apache Airflow to orchestrate the Voyage Analytics machine-learning workflow. Airflow preprocesses source data, trains the models, and validates the generated artifacts before Jenkins builds and deploys the API.
+This folder configures Apache Airflow to orchestrate the Voyage Analytics machine-learning workflow. Airflow preprocesses source data, trains the models, and validates the generated artifacts before Jenkins builds and deploys the API and Streamlit frontend.
 
 ## Workflow
 
@@ -25,8 +25,8 @@ The DAG ID is `travel_pipeline`. It has a daily schedule, with catchup disabled,
 | `docker-compose.yaml` | Starts PostgreSQL, initializes Airflow, and runs the webserver and scheduler. |
 | `dags/travel_pipeline_dag.py` | Defines the preprocessing, model-training, and validation workflow. |
 | `logs/` | Created at runtime to persist Airflow task logs. |
-| `plugins/` | Optional location for custom Airflow plugins. |
-| `config/` | Optional location for additional Airflow configuration. |
+| `plugins/` | Optional runtime mount point for custom Airflow plugins; no custom plugins are currently included. |
+| `config/` | Optional runtime mount point for additional Airflow configuration; no extra configuration files are currently included. |
 
 ## Services
 
@@ -57,13 +57,13 @@ All Airflow services use `LocalExecutor`, which runs tasks locally and is approp
 
 From this folder:
 
-```powershell
+```bash
 docker compose up --build -d
 ```
 
 Check that the services are healthy:
 
-```powershell
+```bash
 docker compose ps
 ```
 
@@ -102,6 +102,15 @@ Jenkins checkout
 
 Update the Windows host path in `docker-compose.yaml` if the project is stored elsewhere.
 
+## Build outputs for deployment
+
+After a successful DAG run, Jenkins uses the shared workspace to build two deployable images:
+
+- `voyage-api:latest`, which packages the validated model artifacts from `models/`.
+- `voyage-streamlit:latest`, which packages the frontend and `data/processed/flight_user.csv` used for its interactive inputs.
+
+Both images are then loaded into Minikube and deployed through the Kubernetes manifests.
+
 ## Run the DAG
 
 ### From the Airflow UI
@@ -113,9 +122,9 @@ Update the Windows host path in `docker-compose.yaml` if the project is stored e
 
 ### From the Airflow REST API
 
-```powershell
-curl -u admin:admin -H "Content-Type: application/json" -X POST `
-  http://localhost:8080/api/v1/dags/travel_pipeline/dagRuns `
+```bash
+curl -u admin:admin -H "Content-Type: application/json" -X POST \
+  http://localhost:8080/api/v1/dags/travel_pipeline/dagRuns \
   -d '{}'
 ```
 
@@ -123,7 +132,7 @@ Jenkins uses the same API endpoint, then polls the DAG-run state before it start
 
 ## View logs and diagnose failures
 
-```powershell
+```bash
 docker compose logs airflow-webserver
 docker compose logs airflow-scheduler
 docker compose logs airflow-init
@@ -133,13 +142,13 @@ Task logs are also available from the Airflow UI. If a training script fails, it
 
 ## Stop Airflow
 
-```powershell
+```bash
 docker compose down
 ```
 
 This stops the containers but preserves the PostgreSQL named volume. To remove the database data as well:
 
-```powershell
+```bash
 docker compose down -v
 ```
 

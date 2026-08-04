@@ -10,9 +10,13 @@ pipeline {
 
         API_IMAGE = "voyage-api:latest"
 
+        STREAMLIT_IMAGE = "voyage-streamlit:latest"
+
         K8S_NAMESPACE = "voyage-analytics"
 
         K8S_DEPLOYMENT = "voyage-api"
+
+        K8S_STREAMLIT_DEPLOYMENT = "voyage-streamlit"
 
         K8S_SERVICE = "voyage-api-service"
     }
@@ -76,6 +80,7 @@ pipeline {
                 echo "Branch    : ${BRANCH_NAME}"
                 echo "Build No  : ${BUILD_NUMBER}"
                 echo "Image     : ${API_IMAGE}"
+                echo "Frontend  : ${STREAMLIT_IMAGE}"
 
                 echo
                 docker --version
@@ -180,7 +185,7 @@ pipeline {
             }
         }
 
-        stage('Build Voyage API Image') {
+        stage('Build Voyage Application Images') {
 
             steps {
 
@@ -189,7 +194,7 @@ pipeline {
                     sh '''
 
                     echo "====================================="
-                    echo "Building Voyage API Docker Image"
+                    echo "Building Voyage Application Docker Images"
                     echo "====================================="
 
                     pwd
@@ -201,8 +206,13 @@ pipeline {
                         -t ${API_IMAGE} \
                         .
 
+                    docker build \
+                        -f streamlit_app/Dockerfile \
+                        -t ${STREAMLIT_IMAGE} \
+                        .
+
                     echo
-                    docker images | grep voyage-api
+                    docker images | grep voyage-
 
                     '''
 
@@ -215,7 +225,7 @@ pipeline {
         stage('Load Image into Minikube') {
             steps {
                 sh '''
-                docker save ${API_IMAGE} | docker exec -i minikube docker load
+                docker save ${API_IMAGE} ${STREAMLIT_IMAGE} | docker exec -i minikube docker load
                 '''
             }
         }
@@ -238,10 +248,16 @@ pipeline {
                 kubectl rollout restart deployment/${K8S_DEPLOYMENT} \
                 -n ${K8S_NAMESPACE}
 
+                kubectl rollout restart deployment/${K8S_STREAMLIT_DEPLOYMENT} \
+                -n ${K8S_NAMESPACE}
+
                 echo
                 echo "Waiting for Rollout..."
 
                 kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+                -n ${K8S_NAMESPACE}
+
+                kubectl rollout status deployment/${K8S_STREAMLIT_DEPLOYMENT} \
                 -n ${K8S_NAMESPACE}
 
                 '''
