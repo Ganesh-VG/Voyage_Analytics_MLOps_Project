@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: voyage-streamlit
-        image: voyage-streamlit:latest
+        image: voyage-streamlit:${STREAMLIT_IMAGE_TAG}
         imagePullPolicy: Never
 
         ports:

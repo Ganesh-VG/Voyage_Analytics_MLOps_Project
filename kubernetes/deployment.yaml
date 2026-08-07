@@ -24,7 +24,7 @@ spec:
 
       - name: voyage-api
 
-        image: voyage-api:latest
+        image: voyage-api:${API_IMAGE_TAG}
 
         imagePullPolicy: Never
 

@@ -8,9 +8,9 @@ pipeline {
 
         DAG_ID = "travel_pipeline"
 
-        API_IMAGE = "voyage-api:latest"
+        API_IMAGE = "voyage-api:${BUILD_NUMBER}"
 
-        STREAMLIT_IMAGE = "voyage-streamlit:latest"
+        STREAMLIT_IMAGE = "voyage-streamlit:${BUILD_NUMBER}"
 
         K8S_NAMESPACE = "voyage-analytics"
 
@@ -240,25 +240,25 @@ pipeline {
                 echo "Deploying Kubernetes Resources"
                 echo "====================================="
 
-                kubectl apply -f kubernetes/
+                export API_IMAGE_TAG=${BUILD_NUMBER}
+                export STREAMLIT_IMAGE_TAG=${BUILD_NUMBER}
 
-                echo
-                echo "Restarting Deployment..."
+                mkdir -p /tmp/k8s
 
-                kubectl rollout restart deployment/${K8S_DEPLOYMENT} \
-                -n ${K8S_NAMESPACE}
+                for file in kubernetes/*.yaml; do
+                    envsubst < "$file" > "/tmp/k8s/$(basename "$file")"
+                done
 
-                kubectl rollout restart deployment/${K8S_STREAMLIT_DEPLOYMENT} \
-                -n ${K8S_NAMESPACE}
+                kubectl apply -f /tmp/k8s/
 
                 echo
                 echo "Waiting for Rollout..."
 
                 kubectl rollout status deployment/${K8S_DEPLOYMENT} \
-                -n ${K8S_NAMESPACE}
+                    -n ${K8S_NAMESPACE}
 
                 kubectl rollout status deployment/${K8S_STREAMLIT_DEPLOYMENT} \
-                -n ${K8S_NAMESPACE}
+                    -n ${K8S_NAMESPACE}
 
                 '''
 
