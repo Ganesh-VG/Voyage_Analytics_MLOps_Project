@@ -107,7 +107,7 @@ services:
       - ./config:/opt/airflow/config
 
       # Shared project workspace
-      - C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps:/workspace
+      - ../shared-workspace:/workspace
 
 
   airflow-webserver:
@@ -154,7 +154,7 @@ services:
       - ./config:/opt/airflow/config
 
       # Shared project workspace
-      - C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps:/workspace
+      - ../shared-workspace:/workspace
 
     restart: always
 
@@ -199,7 +199,7 @@ services:
       - ./config:/opt/airflow/config
 
       # Shared project workspace
-      - C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps:/workspace
+      - ../shared-workspace:/workspace
 
     restart: always
 
