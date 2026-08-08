@@ -225,7 +225,15 @@ pipeline {
         stage('Load Image into Minikube') {
             steps {
                 sh '''
-                docker save ${API_IMAGE} ${STREAMLIT_IMAGE} | docker exec -i minikube docker load
+                echo "Loading images into Minikube..."
+
+                minikube image load ${API_IMAGE}
+                minikube image load ${STREAMLIT_IMAGE}
+
+                echo
+                echo "Images available in Minikube:"
+
+                minikube image ls | grep voyage-
                 '''
             }
         }
@@ -245,20 +253,54 @@ pipeline {
 
                 mkdir -p /tmp/k8s
 
+                echo
+                echo "Generating Kubernetes manifests..."
+
                 for file in kubernetes/*.yaml; do
                     envsubst < "$file" > "/tmp/k8s/$(basename "$file")"
                 done
 
-                kubectl apply -f /tmp/k8s/
+                echo
+                echo "Creating Kubernetes Namespace..."
+
+                kubectl apply -f /tmp/k8s/namespace.yaml
+
+                echo
+                echo "Waiting for Namespace to become Active..."
+
+                kubectl wait \
+                    --for=jsonpath='{.status.phase}'=Active \
+                    namespace/${K8S_NAMESPACE} \
+                    --timeout=60s
+
+                echo
+                echo "Namespace is ready."
+
+                echo
+                echo "Deploying Kubernetes Resources..."
+
+                kubectl apply -f /tmp/k8s/configmap.yaml
+                kubectl apply -f /tmp/k8s/service.yaml
+                kubectl apply -f /tmp/k8s/deployment.yaml
+                kubectl apply -f /tmp/k8s/hpa.yaml
+
+                kubectl apply -f /tmp/k8s/streamlit-configmap.yaml
+                kubectl apply -f /tmp/k8s/streamlit-service.yaml
+                kubectl apply -f /tmp/k8s/streamlit-deployment.yaml
 
                 echo
                 echo "Waiting for Rollout..."
 
                 kubectl rollout status deployment/${K8S_DEPLOYMENT} \
-                    -n ${K8S_NAMESPACE}
+                    -n ${K8S_NAMESPACE} \
+                    --timeout=180s
 
                 kubectl rollout status deployment/${K8S_STREAMLIT_DEPLOYMENT} \
-                    -n ${K8S_NAMESPACE}
+                    -n ${K8S_NAMESPACE} \
+                    --timeout=180s
+
+                echo
+                echo "Kubernetes deployment completed successfully."
 
                 '''
 
