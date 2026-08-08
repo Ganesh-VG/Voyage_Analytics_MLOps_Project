@@ -198,6 +198,14 @@ docker compose -f jenkins/docker-compose.yaml ps
 
 Open Jenkins at `http://localhost:8081`, then run the configured Pipeline job. Jenkins triggers the Airflow DAG, builds both application images, loads them into Minikube, and deploys the API and frontend.
 
+#### Initialize Minikube for Jenkins
+
+After the Jenkins container is running, execute:
+
+```bash
+bash scripts/init-minikube.sh
+```
+
 ### 4. Use the deployed frontend
 
 After the Pipeline succeeds, verify the application Pods:
