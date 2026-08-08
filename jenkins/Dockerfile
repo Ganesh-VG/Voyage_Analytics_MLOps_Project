@@ -5,19 +5,21 @@ USER root
 # Install required packages
 RUN apt-get update && \
     apt-get install -y \
-    docker.io \
-    git \
-    curl \
-    wget \
-    jq \
-    unzip \
-    conntrack \
-    apt-transport-https \
-    ca-certificates && \
-    apt-get clean
+        docker.io \
+        git \
+        curl \
+        wget \
+        jq \
+        unzip \
+        conntrack \
+        apt-transport-https \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install kubectl
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+RUN KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) && \
+    curl -LO https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
     rm kubectl
 
@@ -26,6 +28,7 @@ RUN curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-li
     install minikube-linux-amd64 /usr/local/bin/minikube && \
     rm minikube-linux-amd64
 
+# Jenkins plugins
 COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
 
 RUN jenkins-plugin-cli \

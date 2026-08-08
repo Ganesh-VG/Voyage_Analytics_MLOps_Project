@@ -37,3 +37,10 @@ Thumbs.db
 
 # Docker
 *.log
+
+# Jenkins Kubernetes credentials
+jenkins/kube/*
+!jenkins/kube/.gitkeep
+
+# Jenkins/shared runtime workspace
+shared-workspace/
