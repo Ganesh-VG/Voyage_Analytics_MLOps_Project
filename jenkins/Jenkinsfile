@@ -225,15 +225,7 @@ pipeline {
         stage('Load Image into Minikube') {
             steps {
                 sh '''
-                echo "Loading images into Minikube..."
-
-                minikube image load ${API_IMAGE}
-                minikube image load ${STREAMLIT_IMAGE}
-
-                echo
-                echo "Images available in Minikube:"
-
-                minikube image ls | grep voyage-
+                docker save ${API_IMAGE} ${STREAMLIT_IMAGE} | docker exec -i minikube docker load
                 '''
             }
         }
