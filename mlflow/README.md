@@ -2,6 +2,14 @@
 
 MLflow lets you view the flight-price model's training runs, including parameters, metrics, and saved model artifacts.
 
+## Folder contents
+
+| Item | What it does |
+| --- | --- |
+| `mlflow.db` | A local SQLite database containing existing MLflow experiment history. The Docker setup can use it to seed a new tracking volume. |
+| `artifacts/` | Saved files from earlier MLflow runs, such as trained model packages and reports. |
+| `README.md` | This guide. |
+
 ## Start MLflow
 
 MLflow is included in the Airflow Docker setup. From the repository root, start only MLflow:

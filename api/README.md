@@ -2,6 +2,14 @@
 
 The API provides the project's machine-learning features: flight-price prediction, gender classification, and hotel recommendations.
 
+## Folder contents
+
+| Item | What it does |
+| --- | --- |
+| `app.py` | Starts the Flask API and defines the health, prediction, and recommendation endpoints. |
+| `requirements.txt` | Lists the Python packages required to run the API. |
+| `Dockerfile` | Builds a container containing the API and the repository's trained model files. |
+
 ## Before you start
 
 From the repository root, make sure the trained files exist in `models/`. They are already included in this repository. To create fresh versions, run the Airflow pipeline described in [`../airflow/README.md`](../airflow/README.md).

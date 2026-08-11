@@ -2,6 +2,19 @@
 
 These files deploy the Voyage API and Streamlit app to a local Minikube cluster.
 
+## Folder contents
+
+| File | What it does |
+| --- | --- |
+| `namespace.yaml` | Creates the `voyage-analytics` namespace used by every application resource. |
+| `configmap.yaml` | Supplies non-secret API settings such as the API port. |
+| `deployment.yaml` | Runs and health-checks the API Pods. |
+| `service.yaml` | Gives the API a stable in-cluster address: `voyage-api-service`. |
+| `hpa.yaml` | Scales the API from two to five Pods based on CPU use. |
+| `streamlit-configmap.yaml` | Tells the frontend how to reach the API inside the cluster. |
+| `streamlit-deployment.yaml` | Runs and health-checks the Streamlit frontend Pod. |
+| `streamlit-service.yaml` | Exposes the frontend through a Minikube NodePort. |
+
 ## What you need
 
 - Docker Desktop running

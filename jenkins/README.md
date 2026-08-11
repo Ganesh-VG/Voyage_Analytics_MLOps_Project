@@ -2,6 +2,16 @@
 
 Jenkins automates the full local deployment: it copies the chosen repository revision to the shared workspace, runs the Airflow training pipeline, builds the API and frontend images, and deploys them to Minikube.
 
+## Folder contents
+
+| Item | What it does |
+| --- | --- |
+| `Jenkinsfile` | Defines the automated build, training, image-build, and Kubernetes deployment stages. |
+| `docker-compose.yaml` | Starts Jenkins and mounts its persistent data, Docker access, shared workspace, and Kubernetes configuration. |
+| `Dockerfile` | Builds the Jenkins image with Docker, Git, Minikube, `kubectl`, and other pipeline tools. |
+| `plugins.txt` | Lists the Jenkins plugins installed in the custom image. |
+| `kube/` | Holds the Minikube configuration and certificates Jenkins uses to run `kubectl`; it is created or refreshed by `scripts/init-minikube.sh`. Treat its contents as sensitive. |
+
 ## Before you start
 
 Complete these one-time setup steps:

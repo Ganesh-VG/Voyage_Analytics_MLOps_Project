@@ -1,6 +1,12 @@
-# Voyage Analytics MLOps Project
+<div align="center">
 
-Voyage Analytics is an end-to-end machine-learning operations project for travel data. It preprocesses raw travel records, trains three machine-learning capabilities, tracks experiments, serves predictions with Flask, and deploys both the API and a Streamlit frontend to Minikube through Jenkins and Kubernetes.
+<h1>Voyage Analytics MLOps Project</h1>
+
+<p><em>Voyage Analytics is an end-to-end machine-learning operations project for travel data. It preprocesses raw travel records, trains three machine-learning capabilities, tracks experiments, serves predictions with Flask, and deploys both the API and a Streamlit frontend to Minikube through Jenkins and Kubernetes.</em></p>
+
+</div>
+
+---
 
 ## What it does
 
@@ -9,6 +15,8 @@ Voyage Analytics is an end-to-end machine-learning operations project for travel
 | Flight price prediction | Random Forest regression | Estimates a flight price from route, distance, duration, month, agency, and flight type. |
 | Gender classification | Random Forest classification | Predicts a gender label from traveller and flight attributes. |
 | Hotel recommendation | Aggregated recommendation table | Lists destination-specific hotels ranked by booking activity with price and stay statistics. |
+
+---
 
 ## Architecture
 
@@ -38,6 +46,8 @@ Browser -> Streamlit frontend -> Flask API -> trained models
 
 The API normally runs with two replicas and can scale up to five when CPU usage increases.
 
+---
+
 ## Repository layout
 
 | Folder | Purpose |
@@ -55,6 +65,8 @@ The API normally runs with two replicas and can scale up to five when CPU usage 
 | `jenkins/` | Custom Jenkins image, plugins, Compose setup, and CI/CD pipeline. |
 | `kubernetes/` | API and frontend ConfigMaps, Deployments, Services, and API HPA manifests. |
 | `mlflow/` | Seed and local-fallback MLflow files. The active Docker MLflow service keeps its persistent data in a named Docker volume. |
+
+---
 
 ## Requirements
 
@@ -90,6 +102,8 @@ minikube version
 kubectl version --client
 ```
 
+---
+
 ## End-to-end workflow
 
 1. `preprocessing.py` reads the raw CSV files, removes duplicates, derives date features, and joins flight/hotel data with user data.
@@ -100,6 +114,8 @@ kubectl version --client
 6. Jenkins triggers that DAG, waits for success, and builds `voyage-api:latest` plus `voyage-streamlit:latest`.
 7. Kubernetes runs the Flask API with health checks and CPU-based autoscaling.
 8. Kubernetes runs Streamlit in a separate Pod; it calls `voyage-api-service` through cluster DNS.
+
+---
 
 ## Start the complete project
 
@@ -183,6 +199,8 @@ minikube service voyage-streamlit-service -n voyage-analytics
 
 Keep this command running while using the local Minikube service tunnel. Press `Ctrl+C` when you are finished with the tunnel.
 
+---
+
 ## Stop the complete project
 
 Stop any active `minikube service` or `kubectl port-forward` command first with `Ctrl+C`. Then stop the platform services and Minikube:
@@ -222,6 +240,8 @@ docker image rm jenkins-jenkins:latest
 
 Docker may report that an image does not exist or is still used by another container. In that case, inspect the relevant container first rather than force-removing it.
 
+---
+
 ## Component documentation
 
 - [API guide](api/README.md)
@@ -230,6 +250,8 @@ Docker may report that an image does not exist or is still used by another conta
 - [Kubernetes guide](kubernetes/README.md)
 - [MLflow tracking guide](mlflow/README.md)
 - [Streamlit frontend guide](streamlit_app/README.md)
+
+---
 
 ## Local-development notes
 

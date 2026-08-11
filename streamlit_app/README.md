@@ -2,6 +2,15 @@
 
 This is the browser interface for the Voyage Analytics API. It offers flight-price predictions, gender classification, and hotel recommendations.
 
+## Folder contents
+
+| Item | What it does |
+| --- | --- |
+| `streamlit_app.py` | Starts the dashboard, renders the three feature pages, and sends requests to the API. |
+| `requirements.txt` | Lists the Python packages required by the frontend. |
+| `Dockerfile` | Builds a container for the frontend and includes the processed flight dataset. |
+| `README.md` | This guide. |
+
 ## Before you start
 
 You need Python 3.11+ and a running API. The simplest option is to start the API locally in a separate terminal:

@@ -2,6 +2,17 @@
 
 Airflow runs the machine-learning workflow: prepare the data, train the three models, and validate the generated files.
 
+## Folder contents
+
+| Item | What it does |
+| --- | --- |
+| `dags/travel_pipeline_dag.py` | Defines the `travel_pipeline` workflow and the order of its five tasks. |
+| `docker-compose.yaml` | Starts Airflow, PostgreSQL, and MLflow together. |
+| `Dockerfile` | Creates the Airflow image with the packages needed to run the project scripts. |
+| `requirements.txt` | Lists the Python packages installed in the Airflow image. |
+| `logs/` | Stores task and scheduler logs created while Airflow runs. |
+| `config/` and `plugins/` | Optional places for extra Airflow configuration and custom plugins. |
+
 ## What you need
 
 - Docker Desktop running
