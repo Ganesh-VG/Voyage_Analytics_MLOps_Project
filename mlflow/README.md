@@ -1,61 +1,48 @@
 # Voyage Analytics MLflow Tracking
 
-MLflow records the Flight Price Prediction training runs: model parameters, quality metrics, model files, feature columns, and feature-importance reports. It is integrated with the Airflow Compose stack and is available in a browser at `http://localhost:5000`.
+MLflow lets you view the flight-price model's training runs, including parameters, metrics, and saved model artifacts.
 
-## Start the MLflow UI
+## Start MLflow
 
-From the repository root, start only MLflow when you want to inspect experiments without starting all Airflow services:
+MLflow is included in the Airflow Docker setup. From the repository root, start only MLflow:
 
-```bash
+```powershell
 docker compose -f airflow/docker-compose.yaml up --build -d mlflow
-docker compose -f airflow/docker-compose.yaml ps mlflow
 ```
 
-Open:
+Open <http://localhost:5000>. Start the full Airflow stack instead if you also want to train models:
 
-```text
-http://localhost:5000
-```
-
-Starting the full Airflow stack also starts MLflow automatically:
-
-```bash
+```powershell
 docker compose -f airflow/docker-compose.yaml up --build -d
 ```
 
-## Pipeline runs
+## View a training run
 
-The Airflow scheduler supplies `MLFLOW_TRACKING_URI=http://mlflow:5000` to the training workflow. When Jenkins triggers the `travel_pipeline` DAG, the Flight Price Prediction task creates or updates the **Flight Price Prediction** experiment in MLflow.
+1. Run the `travel_pipeline` DAG in Airflow.
+2. Open <http://localhost:5000>.
+3. Select **Flight Price Prediction**.
+4. Open a run to compare metrics, parameters, and artifacts.
 
-After a successful DAG run, open that experiment to compare run parameters and metrics or download logged artifacts.
+Airflow sends its training results to the MLflow service automatically.
 
-## Track a local training run in the UI
+## Record a run from your computer
 
-If you run the training script directly on your computer, point it at the running service first:
+With MLflow running, use PowerShell from the repository root:
 
-```bash
-docker compose -f airflow/docker-compose.yaml up --build -d mlflow
-export MLFLOW_TRACKING_URI=http://localhost:5000
+```powershell
+$env:MLFLOW_TRACKING_URI = 'http://localhost:5000'
 python src/model_training/train_flight_price_model.py
-unset MLFLOW_TRACKING_URI
+Remove-Item Env:MLFLOW_TRACKING_URI
 ```
 
-Without `MLFLOW_TRACKING_URI`, the script falls back to a local SQLite store under `mlflow/`. That fallback is useful for standalone work, but its results are not as durable as the Compose-managed tracking service.
+## Stop or reset
 
-## Data retention and cleanup
-
-The active MLflow database and artifacts are kept in the `mlflow-data` named Docker volume. On its first start, the service copies any existing history in this repository's `mlflow/` folder into that volume, allowing the earlier Airflow-based artifact paths to remain readable.
-
-Normal shutdown preserves MLflow history:
-
-```bash
+```powershell
+# Stop services and keep experiment history
 docker compose -f airflow/docker-compose.yaml down
+
+# Remove all local Airflow and MLflow Docker data
+docker compose -f airflow/docker-compose.yaml down -v
 ```
 
-The following full cleanup removes the MLflow volume together with Airflow's PostgreSQL data:
-
-```bash
-docker compose -f airflow/docker-compose.yaml down --volumes --remove-orphans
-```
-
-Use the cleanup command only when you intentionally want to remove local experiment history.
+Use the second command only when you want a clean local setup.

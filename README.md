@@ -101,45 +101,6 @@ kubectl version --client
 7. Kubernetes runs the Flask API with health checks and CPU-based autoscaling.
 8. Kubernetes runs Streamlit in a separate Pod; it calls `voyage-api-service` through cluster DNS.
 
-## Quick start: train locally
-
-After completing [First-time setup from a fresh clone](#first-time-setup-from-a-fresh-clone), run preprocessing, training, and validation from the repository root:
-
-```bash
-python src/preprocessing/preprocessing.py
-python src/model_training/train_flight_price_model.py
-python src/model_training/train_gender_classifier.py
-python src/model_training/train_hotel_recommender.py
-python src/evaluation/model_evaluation.py
-```
-
-## Run the API and Streamlit UI
-
-Start the Flask API:
-
-```bash
-pip install -r api/requirements.txt
-python api/app.py
-```
-
-In another terminal, start the UI from the repository root:
-
-```bash
-streamlit run streamlit_app/streamlit_app.py
-```
-
-The API listens on `http://localhost:8000` by default. The frontend checks API health before showing the dashboard. When `VOYAGE_API_BASE_URL` is not set, it can create a local Kubernetes port-forward automatically; if that is unavailable, run the following command in another terminal:
-
-```bash
-kubectl port-forward -n voyage-analytics service/voyage-api-service 8000:8000
-```
-
-Test the API health endpoint:
-
-```bash
-curl http://localhost:8000/
-```
-
 ## Start the complete project
 
 Run these commands from Git Bash at the repository root. The normal automated path is to start the platform services, then use the Jenkins Pipeline to train and deploy the application.
@@ -221,22 +182,6 @@ minikube service voyage-streamlit-service -n voyage-analytics
 ```
 
 Keep this command running while using the local Minikube service tunnel. Press `Ctrl+C` when you are finished with the tunnel.
-
-### Manual deployment alternative
-
-If you do not want to use Jenkins, first run the preprocessing and training commands in [Quick start: train locally](#quick-start-train-locally). Then build and deploy both images:
-
-```bash
-docker build -f api/Dockerfile -t voyage-api:latest .
-docker build -f streamlit_app/Dockerfile -t voyage-streamlit:latest .
-minikube image load --overwrite voyage-api:latest
-minikube image load --overwrite voyage-streamlit:latest
-kubectl apply -f kubernetes/
-kubectl rollout restart deployment/voyage-api -n voyage-analytics
-kubectl rollout restart deployment/voyage-streamlit -n voyage-analytics
-kubectl rollout status deployment/voyage-api -n voyage-analytics
-kubectl rollout status deployment/voyage-streamlit -n voyage-analytics
-```
 
 ## Stop the complete project
 

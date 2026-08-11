@@ -1,119 +1,86 @@
-# Voyage Analytics Kubernetes Deployment
+# Voyage Analytics on Kubernetes
 
-This folder contains the Kubernetes manifests used to deploy the Voyage Analytics Flask API and Streamlit frontend to a Minikube cluster.
+These files deploy the Voyage API and Streamlit app to a local Minikube cluster.
 
-## Architecture
+## What you need
 
-```text
-Browser
-  |
-  v
-Streamlit Service (NodePort 30081)
-  |
-  v
-Streamlit Pod (port 8501)
-  |
-  v
-Voyage API Service
-  |
-  v
-Voyage API Pods (2 to 5 replicas, port 8000)
+- Docker Desktop running
+- [Minikube](https://minikube.sigs.k8s.io/) and `kubectl` installed
+- The trained files in `models/` and `data/processed/flight_user.csv` (included in this repository)
+
+Start Minikube from the repository root:
+
+```powershell
+minikube start --driver=docker
+kubectl config use-context minikube
 ```
 
-## Manifest files
+## Easiest deployment: use Jenkins
 
-| File | Purpose |
-| --- | --- |
-| `namespace.yaml` | Creates the `voyage-analytics` namespace, which keeps this application's resources grouped together. |
-| `configmap.yaml` | Defines non-sensitive environment variables for the API: `FLASK_ENV`, `MODEL_PATH`, and `PORT`. |
-| `deployment.yaml` | Runs the `voyage-api` container, keeps two replicas available, and defines resource limits and health probes. |
-| `service.yaml` | Creates a stable NodePort endpoint that forwards requests to the API Pods. |
-| `hpa.yaml` | Scales the API between two and five replicas when average CPU utilization exceeds 70%. |
-| `streamlit-configmap.yaml` | Gives the frontend the internal `voyage-api-service` URL. |
-| `streamlit-deployment.yaml` | Runs the `voyage-streamlit` frontend container. |
-| `streamlit-service.yaml` | Exposes the frontend through NodePort `30081`. |
+Jenkins builds the images, triggers model training, loads the images into Minikube, and applies these manifests. For the complete automated path, follow [`../jenkins/README.md`](../jenkins/README.md).
 
-## Prerequisites
+## Deploy manually
 
-- Docker
-- Minikube running locally
-- `kubectl` configured to use the Minikube context
-- Locally built images named `voyage-api:latest` and `voyage-streamlit:latest`
+Run the following commands from the repository root. The manifests use image tags supplied by environment variables; the commands below use the tag `local`.
 
-## Deploy locally
+1. Build and load both images from the repository root:
 
-From the repository root, build both application images and load them into Minikube:
+   ```powershell
+   docker build -f api/Dockerfile -t voyage-api:local .
+   docker build -f streamlit_app/Dockerfile -t voyage-streamlit:local .
+   minikube image load voyage-api:local
+   minikube image load voyage-streamlit:local
+   ```
 
-```bash
-docker build -f api/Dockerfile -t voyage-api:latest .
-docker build -f streamlit_app/Dockerfile -t voyage-streamlit:latest .
-minikube image load --overwrite voyage-api:latest
-minikube image load --overwrite voyage-streamlit:latest
-```
+2. Create rendered copies of the manifests and apply them:
 
-Apply all manifests:
+   ```powershell
+   $env:API_IMAGE_TAG = 'local'
+   $env:STREAMLIT_IMAGE_TAG = 'local'
+   New-Item -ItemType Directory -Path .k8s-rendered -Force | Out-Null
+   Get-ChildItem kubernetes/*.yaml | ForEach-Object {
+     $content = Get-Content $_.FullName -Raw
+     $content = $content.Replace('${API_IMAGE_TAG}', $env:API_IMAGE_TAG)
+     $content = $content.Replace('${STREAMLIT_IMAGE_TAG}', $env:STREAMLIT_IMAGE_TAG)
+     Set-Content -Path ".k8s-rendered/$($_.Name)" -Value $content
+   }
+   kubectl apply -f .k8s-rendered/
+   ```
 
-```bash
-kubectl apply -f kubernetes/
-kubectl rollout restart deployment/voyage-api -n voyage-analytics
-kubectl rollout restart deployment/voyage-streamlit -n voyage-analytics
-```
+3. Wait for both applications:
 
-## Verify the deployment
+   ```powershell
+   kubectl rollout status deployment/voyage-api -n voyage-analytics
+   kubectl rollout status deployment/voyage-streamlit -n voyage-analytics
+   ```
 
-```bash
-kubectl get pods -n voyage-analytics
-kubectl get svc -n voyage-analytics
-kubectl get deployment -n voyage-analytics
-kubectl get hpa -n voyage-analytics
-```
+## Open the app
 
-Wait for the API to become ready:
-
-```bash
-kubectl rollout status deployment/voyage-api -n voyage-analytics
-kubectl rollout status deployment/voyage-streamlit -n voyage-analytics
-```
-
-## Access the frontend and API
-
-For Minikube with the Docker driver on Windows, open the frontend through a Minikube Service tunnel:
-
-```bash
+```powershell
 minikube service voyage-streamlit-service -n voyage-analytics
 ```
 
-In Git Bash, use the same command:
+To call the API directly:
 
-```bash
-minikube service voyage-streamlit-service -n voyage-analytics
-```
-
-To call the API directly from the host, create a port-forward:
-
-```bash
+```powershell
 kubectl port-forward -n voyage-analytics service/voyage-api-service 8000:8000
 ```
 
-Then call `http://localhost:8000/`.
+Then visit <http://localhost:8000/>.
 
-Expected response:
+## Check status
 
-```json
-{
-  "message": "Voyage Analytics API Running Successfully"
-}
+```powershell
+kubectl get pods,services,deployments -n voyage-analytics
 ```
 
-## Important notes
+The API starts with two replicas and can scale to five when CPU usage is high. If the autoscaler does not show metrics, run `minikube addons enable metrics-server`.
 
-- `imagePullPolicy: Never` means Minikube must already contain both images; Kubernetes will not pull them from an image registry. Use `minikube image load --overwrite` when replacing an existing `latest` image.
-- The API listens on container port `8000`; the frontend listens on port `8501`.
-- The ConfigMap does not contain secrets. Use a Kubernetes `Secret` for passwords, keys, or tokens.
-- The Horizontal Pod Autoscaler needs Metrics Server to obtain CPU metrics. Minikube normally provides it, but it can be enabled with `minikube addons enable metrics-server` if needed.
+## Remove the application
 
-## Remove the deployment
-
-```bash
-kubectl delete -f kubernetes/
+```powershell
+kubectl delete -f .k8s-rendered/
+Remove-Item .k8s-rendered -Recurse -Force
 ```
+
+This removes the application resources but leaves Minikube and Docker images intact.
