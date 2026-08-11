@@ -135,16 +135,9 @@ Create a local Python environment for notebooks, local training, and local Strea
 ```bash
 python -m venv venv
 source venv/Scripts/activate
-python -m pip install --upgrade pip
-pip install Flask pandas numpy scikit-learn scipy xgboost joblib mlflow matplotlib seaborn streamlit
 ```
 
-Before continuing, start Docker Desktop manually and wait until it reports that the Docker engine is running. Then update the host-specific workspace paths in both files so Jenkins and Airflow share the same directory:
-
-- `airflow/docker-compose.yaml`
-- `jenkins/docker-compose.yaml`
-
-The current example path is `C:/Projects/JenkinsWorkspace/Voyage_Analytics_MLOps`. Create that directory or replace it consistently in both files.
+Before continuing, start Docker Desktop manually and wait until it reports that the Docker engine is running.
 
 ### 1. Start Minikube
 
