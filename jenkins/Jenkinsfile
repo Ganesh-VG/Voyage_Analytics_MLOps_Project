@@ -54,7 +54,10 @@ pipeline {
 
                 echo "Copying Repository..."
 
-                cp -a "$WORKSPACE"/. /workspace/
+                rsync -a \
+                    --exclude='.git/' \
+                    "$WORKSPACE"/ \
+                    /workspace/
 
                 echo
                 echo "Shared Workspace Contents"

@@ -5,15 +5,16 @@ USER root
 # Install required packages
 RUN apt-get update && \
     apt-get install -y \
-        docker.io \
-        git \
-        curl \
-        wget \
-        jq \
-        unzip \
-        conntrack \
-        apt-transport-https \
-        ca-certificates && \
+    docker.io \
+    git \
+    curl \
+    wget \
+    jq \
+    unzip \
+    conntrack \
+    apt-transport-https \
+    ca-certificates \
+    rsync && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
